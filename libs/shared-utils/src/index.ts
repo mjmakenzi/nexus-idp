@@ -24,3 +24,4 @@ export * from './rcaptcha/rcaptcha.config';
 export * from './rcaptcha/rcaptcha.guard';
 export * from './rcaptcha/rcaptcha.module';
 export * from './rcaptcha/rcaptcha.service';
+export * from './logger/logger.module';

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthModule } from '@app/auth';
 import { DbModule } from '@app/db';
@@ -14,7 +14,7 @@ import {
   RcaptchaModule,
 } from '@app/shared-utils';
 import { combinedValidationSchema } from '@app/shared-utils';
-import { LoggerModule } from 'nestjs-pino';
+import { LoggerModule } from '@app/shared-utils';
 import { resolve } from 'path';
 import { apiConfig } from './api.config';
 import { ApiController } from './api.controller';
@@ -36,22 +36,7 @@ import { apiSchema } from './api.schema';
       ],
       validationSchema: apiSchema.concat(combinedValidationSchema),
     }),
-    LoggerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => {
-        const prettify =
-          !configService.getOrThrow<boolean>('isProduction') &&
-          !configService.getOrThrow<boolean>('isTesting');
-        return {
-          pinoHttp: {
-            level: configService.getOrThrow<string>('logLevel'),
-            transport: prettify ? { target: 'pino-pretty' } : undefined,
-          },
-          forRoutes: [],
-        };
-      },
-    }),
+    LoggerModule,
     JwtModule.register({ global: true }),
     DbModule,
     AuthModule,
