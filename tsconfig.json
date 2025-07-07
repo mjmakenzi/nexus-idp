@@ -1,0 +1,77 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "declaration": true,
+    "declarationMap": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2021",
+    "sourceMap": true,
+    "inlineSources": true,
+    "sourceRoot": "/",
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "paths": {
+      "@app/auth": [
+        "libs/auth/src"
+      ],
+      "@app/auth/*": [
+        "libs/auth/src/*"
+      ],
+      "@app/db": [
+        "libs/db/src"
+      ],
+      "@app/db/*": [
+        "libs/db/src/*"
+      ],
+      "@app/otp": [
+        "libs/otp/src"
+      ],
+      "@app/otp/*": [
+        "libs/otp/src/*"
+      ],
+      "@app/passport": [
+        "libs/shared-utils/passport/src"
+      ],
+      "@app/passport/*": [
+        "libs/shared-utils/passport/src/*"
+      ],
+      "@app/profile": [
+        "libs/profile/src"
+      ],
+      "@app/profile/*": [
+        "libs/profile/src/*"
+      ],
+      "@app/session": [
+        "libs/session/src"
+      ],
+      "@app/session/*": [
+        "libs/session/src/*"
+      ],
+      "@app/shared-utils": [
+        "libs/shared-utils/src"
+      ],
+      "@app/shared-utils/*": [
+        "libs/shared-utils/src/*"
+      ],
+      "@app/sso": [
+        "libs/sso/src"
+      ],
+      "@app/sso/*": [
+        "libs/sso/src/*"
+      ],
+      "@app/user": [
+        "libs/user/src"
+      ],
+      "@app/user/*": [
+        "libs/user/src/*"
+      ]
+    }
+  }
+}
