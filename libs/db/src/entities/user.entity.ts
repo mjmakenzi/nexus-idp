@@ -41,6 +41,12 @@ export class UserEntity extends BaseEntity {
   @Property({ fieldName: 'country_code', nullable: true })
   countryCode?: string;
 
+  @Property({ fieldName: 'google_id', nullable: true, unique: true })
+  googleId?: string;
+
+  @Property({ fieldName: 'apple_id', nullable: true, unique: true })
+  appleId?: string;
+
   @Property({ fieldName: 'email_verified', default: false })
   emailVerified: boolean = false;
 

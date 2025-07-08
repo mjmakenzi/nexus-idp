@@ -5,5 +5,6 @@ import { KavenegarService } from './kavenegar.service';
 @Module({
   imports: [ConfigModule],
   providers: [KavenegarService],
+  exports: [KavenegarService],
 })
 export class KavenegarModule {}

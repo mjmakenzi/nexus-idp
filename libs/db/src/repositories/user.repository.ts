@@ -60,6 +60,35 @@ export class UserRepository extends EntityRepository<UserEntity> {
     return user;
   }
 
+  async createGoogleUser(
+    email: string,
+    username: string,
+    googleId: string,
+    firstName?: string,
+    lastName?: string,
+    displayName?: string,
+  ): Promise<UserEntity> {
+    const user = this.create({
+      username,
+      email,
+      googleId,
+      passwordHash: null,
+      passwordSalt: null,
+      countryCode: null,
+      phoneNo: null,
+      phoneVerified: false,
+      registeredOn: new Date(),
+      emailVerified: true,
+      emailVerifiedOn: new Date(),
+      identityVerified: false,
+      failedLoginAttempts: 0,
+      modifiedOn: new Date(),
+      isDeleted: false,
+    });
+
+    return user;
+  }
+
   async getUserByPhone(
     dto: OneClickPhoneDto | SendOtpPhoneDto,
   ): Promise<UserEntity | null> {
@@ -73,6 +102,20 @@ export class UserRepository extends EntityRepository<UserEntity> {
   async getUserByEmail(email: string): Promise<UserEntity | null> {
     return await this.findOne({
       email,
+      isDeleted: false,
+    });
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<UserEntity | null> {
+    return await this.findOne({
+      googleId,
+      isDeleted: false,
+    });
+  }
+
+  async getUserByAppleId(appleId: string): Promise<UserEntity | null> {
+    return await this.findOne({
+      appleId,
       isDeleted: false,
     });
   }

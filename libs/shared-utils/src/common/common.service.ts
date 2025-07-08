@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { randomBytes, randomUUID } from 'crypto';
 import { FastifyRequest } from 'fastify';
 
 @Injectable()
 export class CommonService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor() {}
 
   generateRandomUserDataKey(): string {
     return randomBytes(16).toString('hex');

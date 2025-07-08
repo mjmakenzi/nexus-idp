@@ -1,4 +1,5 @@
 import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { AuthService, GoogleLoginDto } from '@app/auth';
 import {
   OneClickEmailDto,
   OneClickPhoneDto,
@@ -13,7 +14,10 @@ const PATH = 'account';
 
 @Controller({ path: PATH })
 export class ApiController {
-  constructor(private readonly otpService: OtpService) {}
+  constructor(
+    private readonly otpService: OtpService,
+    private readonly authService: AuthService,
+  ) {}
 
   @UseGuards(RcaptchaGuard)
   @Post('v1/send-otp-phone')
@@ -37,5 +41,10 @@ export class ApiController {
   @Post('v1/one-click-email')
   oneClickEmail(@Body() body: OneClickEmailDto) {
     return this.otpService.oneClickEmail(body);
+  }
+
+  @Post('v1/google-login')
+  googleLogin(@Body() body: GoogleLoginDto) {
+    return this.authService.googleLogin(body);
   }
 }

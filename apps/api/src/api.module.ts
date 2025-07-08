@@ -11,7 +11,6 @@ import {
   kavenegarConfig,
   nodemailerConfig,
   rcaptchaConfig,
-  RcaptchaModule,
 } from '@app/shared-utils';
 import { combinedValidationSchema } from '@app/shared-utils';
 import { LoggerModule } from '@app/shared-utils';
@@ -36,12 +35,11 @@ import { apiSchema } from './api.schema';
       ],
       validationSchema: apiSchema.concat(combinedValidationSchema),
     }),
-    LoggerModule,
     JwtModule.register({ global: true }),
+    LoggerModule,
     DbModule,
     AuthModule,
     OtpModule,
-    RcaptchaModule,
   ],
   controllers: [ApiController],
 })

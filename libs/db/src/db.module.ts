@@ -17,7 +17,6 @@ import config from './mikro-orm.config';
     ConfigModule,
     MikroOrmModule.forRootAsync({
       useFactory: (configService: ConfigService, logger: PinoLogger) => {
-        console.log(config);
         logger.setContext(MikroOrmModule.name);
         return {
           ...config,

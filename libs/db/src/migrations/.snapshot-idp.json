@@ -75,6 +75,26 @@
           "length": 255,
           "mappedType": "string"
         },
+        "google_id": {
+          "name": "google_id",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "apple_id": {
+          "name": "apple_id",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
         "email_verified": {
           "name": "email_verified",
           "type": "boolean",
@@ -215,6 +235,26 @@
           ],
           "composite": false,
           "keyName": "users_phone_no_unique",
+          "constraint": true,
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "google_id"
+          ],
+          "composite": false,
+          "keyName": "users_google_id_unique",
+          "constraint": true,
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "apple_id"
+          ],
+          "composite": false,
+          "keyName": "users_apple_id_unique",
           "constraint": true,
           "primary": false,
           "unique": true

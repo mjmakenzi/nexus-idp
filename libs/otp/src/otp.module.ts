@@ -2,13 +2,11 @@ import { Module } from '@nestjs/common';
 import { OtpEntity, ProfileEntity, UserEntity } from '@app/db';
 import {
   AvatarModule,
-  CommonService,
-  DiscourseService,
-  JwtService,
+  CommonModule,
+  DiscourseModule,
+  JwtModule,
   KavenegarModule,
-  KavenegarService,
   NodemailerModule,
-  NodemailerService,
 } from '@app/shared-utils';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { OtpService } from './otp.service';
@@ -19,15 +17,11 @@ import { OtpService } from './otp.service';
     AvatarModule,
     KavenegarModule,
     NodemailerModule,
+    CommonModule,
+    JwtModule,
+    DiscourseModule,
   ],
-  providers: [
-    OtpService,
-    JwtService,
-    DiscourseService,
-    NodemailerService,
-    KavenegarService,
-    CommonService,
-  ],
+  providers: [OtpService],
   exports: [OtpService],
 })
 export class OtpModule {}
