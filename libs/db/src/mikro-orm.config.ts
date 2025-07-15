@@ -33,10 +33,10 @@ const config: Options<PostgreSqlDriver> = defineConfig({
     UserEntity,
     ProfileEntity,
     AuditLogEntity,
-    OtpEntity,
     RevokedTokenEntity,
     SessionEntity,
     DeviceEntity,
+    OtpEntity,
   ],
   loadStrategy: LoadStrategy.JOINED,
   migrations: {

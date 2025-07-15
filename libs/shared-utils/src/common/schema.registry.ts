@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { appleSchema } from '../apple/apple.schema';
 import { avatarSchema } from '../avatar/avatar.schema';
 import { discourseSchema } from '../discourse/discourse.schema';
 import { jwtSchema } from '../jwt/jwt.schema';
@@ -14,6 +15,7 @@ const schemas = [
   avatarSchema,
   discourseSchema,
   kavenegarSchema,
+  appleSchema,
 ];
 
 // Combine all schemas using Joi.concat()
@@ -30,4 +32,5 @@ export {
   avatarSchema,
   discourseSchema,
   kavenegarSchema,
+  appleSchema,
 };

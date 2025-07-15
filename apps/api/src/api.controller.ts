@@ -1,13 +1,19 @@
 import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
-import { AuthService, GoogleLoginDto } from '@app/auth';
 import {
-  OneClickEmailDto,
-  OneClickPhoneDto,
-  OtpService,
-  SendOptEmailDto,
-  SendOtpPhoneDto,
-} from '@app/otp';
-import { RcaptchaGuard } from '@app/shared-utils';
+  AppleLoginDto,
+  AppleLogoutDto,
+  AuthService,
+  GoogleLoginDto,
+  LogoutDto,
+} from '@app/auth';
+// import {
+//   OneClickEmailDto,
+//   OneClickPhoneDto,
+//   OtpService,
+//   SendOptEmailDto,
+//   SendOtpPhoneDto,
+// } from '@app/otp';
+import { JwtAuthGuard, RcaptchaGuard } from '@app/shared-utils';
 import { FastifyRequest } from 'fastify';
 
 const PATH = 'account';
@@ -15,36 +21,29 @@ const PATH = 'account';
 @Controller({ path: PATH })
 export class ApiController {
   constructor(
-    private readonly otpService: OtpService,
+    // private readonly otpService: OtpService,
     private readonly authService: AuthService,
   ) {}
 
-  @UseGuards(RcaptchaGuard)
-  @Post('v1/send-otp-phone')
-  sendOtpPhone(@Req() req: FastifyRequest, @Body() body: SendOtpPhoneDto) {
-    return this.otpService.sendOtpPhone(req, body);
-  }
+  // @Post('v1/google-login')
+  // googleLogin(@Body() body: GoogleLoginDto) {
+  //   return this.authService.googleLogin(body);
+  // }
 
-  @UseGuards(RcaptchaGuard)
-  @Post('v1/one-click-phone')
-  oneClickPhone(@Body() body: OneClickPhoneDto) {
-    return this.otpService.oneClickPhone(body);
-  }
+  // @Post('v1/apple-login')
+  // appleLogin(@Body() body: AppleLoginDto) {
+  //   return this.authService.appleLogin(body);
+  // }
 
-  @UseGuards(RcaptchaGuard)
-  @Post('v1/send-otp-email')
-  sendOtpEmail(@Req() req: FastifyRequest, @Body() body: SendOptEmailDto) {
-    return this.otpService.sendOptEmail(req, body);
-  }
+  // @UseGuards(JwtAuthGuard)
+  // @Post('v1/apple-logout')
+  // appleLogout(@Body() body: AppleLogoutDto) {
+  //   return this.authService.appleLogout(body);
+  // }
 
-  @UseGuards(RcaptchaGuard)
-  @Post('v1/one-click-email')
-  oneClickEmail(@Body() body: OneClickEmailDto) {
-    return this.otpService.oneClickEmail(body);
-  }
-
-  @Post('v1/google-login')
-  googleLogin(@Body() body: GoogleLoginDto) {
-    return this.authService.googleLogin(body);
-  }
+  // @UseGuards(JwtAuthGuard)
+  // @Post('v1/logout')
+  // logout(@Body() body: LogoutDto, @Req() req: FastifyRequest) {
+  //   return this.authService.logout(body, req);
+  // }
 }

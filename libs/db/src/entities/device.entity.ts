@@ -1,57 +1,240 @@
 import {
   BaseEntity,
+  Collection,
   Entity,
   EntityRepositoryType,
   ManyToOne,
+  OneToMany,
+  OptionalProps,
   PrimaryKey,
   Property,
+  Unique,
 } from '@mikro-orm/core';
 import { DeviceRepository } from '../repositories/device.repository';
+import { SessionEntity } from './session.entity';
 import { UserEntity } from './user.entity';
 
+/**
+ * Device entity for tracking and managing user devices across sessions.
+ *
+ * This entity handles:
+ * - Device identification and fingerprinting
+ * - Device trust management and security policies
+ * - Session tracking across multiple devices
+ * - Device metadata and technical specifications
+ * - Security monitoring and device blocking
+ * - Multi-device authentication support
+ */
 @Entity({ tableName: 'devices', repository: () => DeviceRepository })
 export class DeviceEntity extends BaseEntity {
   [EntityRepositoryType]?: DeviceRepository;
+  /**
+   * Optional properties that can be undefined during entity creation/updates.
+   * These fields are nullable or may not be set initially.
+   */
+  [OptionalProps]?:
+    | 'deviceName' // User-friendly name for the device (nullable)
+    | 'osName' // Operating system name (nullable)
+    | 'osVersion' // Operating system version (nullable)
+    | 'browserName' // Web browser name (nullable)
+    | 'browserVersion' // Web browser version (nullable)
+    | 'deviceMetadata' // Additional device information (nullable)
+    | 'trustedAt' // Timestamp when this device was marked as trusted (nullable)
+    | 'blockedAt' // Timestamp when this device was blocked/blacklisted (nullable)
+    | 'blockReason' // Reason for blocking this device (nullable)
+    | 'userAgent' // User agent string from the browser/client (nullable)
+    | 'lastIpAddress'; // Last known IP address of this device (nullable)
 
+  /** Unique identifier for the device record */
   @PrimaryKey()
   id!: number;
 
-  @ManyToOne({ fieldName: 'user_id' })
+  /**
+   * Associated user account that owns this device.
+   * Many-to-one relationship - one user can have multiple devices.
+   */
+  @ManyToOne({ name: 'user_id' })
   user!: UserEntity;
 
-  @Property({ fieldName: 'device_id' })
-  deviceId!: string;
+  /**
+   * Unique device fingerprint for device identification.
+   * Generated from hardware/software characteristics to uniquely identify devices.
+   * Used for device recognition across sessions and security monitoring.
+   */
+  @Property({ name: 'device_fingerprint' })
+  @Unique()
+  deviceFingerprint!: string;
 
-  @Property({ fieldName: 'device_name', type: 'text', nullable: true })
+  /**
+   * User-friendly name for the device (e.g., "John's iPhone", "Work Laptop").
+   * Can be set by the user for easier device management.
+   */
+  @Property({ name: 'device_name', nullable: true })
   deviceName?: string;
 
-  @Property({ fieldName: 'device_type', type: 'text', nullable: true })
-  deviceType?: string;
+  /**
+   * Device category (mobile, desktop, tablet, etc.).
+   * Used for device-specific features and security policies.
+   */
+  @Property({ name: 'device_type' })
+  deviceType!: string; // mobile/desktop/tablet
 
-  @Property({ fieldName: 'device_info', type: 'text', nullable: true })
-  deviceInfo?: string;
+  /**
+   * Operating system name (e.g., "Windows", "macOS", "iOS", "Android").
+   * Used for device-specific features and security policies.
+   */
+  @Property({ name: 'os_name', nullable: true })
+  osName?: string;
 
-  @Property({ fieldName: 'refresh_token', type: 'text', nullable: true })
-  refreshToken?: string;
+  /**
+   * Operating system version (e.g., "10.15.7", "14.0").
+   * Used for security assessments and compatibility checks.
+   */
+  @Property({ name: 'os_version', nullable: true })
+  osVersion?: string;
 
-  @Property({ fieldName: 'user_agent', type: 'text', nullable: true })
+  /**
+   * Web browser name (e.g., "Chrome", "Safari", "Firefox").
+   * Used for browser-specific features and security policies.
+   */
+  @Property({ name: 'browser_name', nullable: true })
+  browserName?: string;
+
+  /**
+   * Web browser version (e.g., "91.0.4472.124").
+   * Used for security assessments and compatibility checks.
+   */
+  @Property({ name: 'browser_version', nullable: true })
+  browserVersion?: string;
+
+  /**
+   * Additional device information stored as JSON.
+   * Flexible storage for screen resolution, hardware specs, etc.
+   */
+  @Property({ name: 'device_metadata', type: 'json', nullable: true })
+  deviceMetadata?: Record<string, unknown>;
+
+  /**
+   * Whether this device is trusted by the user.
+   * Trusted devices may have relaxed security requirements.
+   * Defaults to false for new devices.
+   */
+  @Property({ name: 'is_trusted', default: false })
+  isTrusted: boolean = false;
+
+  /**
+   * Whether this device is managed by an organization (MDM).
+   * Managed devices may have different security policies.
+   * Defaults to false for personal devices.
+   */
+  @Property({ name: 'is_managed', default: false })
+  isManaged: boolean = false;
+
+  /**
+   * Timestamp when this device was first seen/registered.
+   * Used for device age tracking and security assessments.
+   */
+  @Property({ name: 'first_seen_at' })
+  firstSeenAt!: Date;
+
+  /**
+   * Timestamp when this device was last active.
+   * Used for device activity tracking and cleanup of inactive devices.
+   */
+  @Property({ name: 'last_seen_at' })
+  lastSeenAt!: Date;
+
+  /**
+   * Timestamp when this device was marked as trusted.
+   * Used for trust relationship tracking and security audits.
+   */
+  @Property({ name: 'trusted_at', nullable: true })
+  trustedAt?: Date;
+
+  /**
+   * Timestamp when this device was blocked/blacklisted.
+   * Used for security incident tracking and device management.
+   */
+  @Property({ name: 'blocked_at', nullable: true })
+  blockedAt?: Date;
+
+  /**
+   * Reason for blocking this device (security violation, policy breach, etc.).
+   * Used for security audits and incident response.
+   */
+  @Property({ name: 'block_reason', nullable: true })
+  blockReason?: string;
+
+  /**
+   * User agent string from the browser/client.
+   * Used for device identification and security monitoring.
+   */
+  @Property({ name: 'user_agent', nullable: true })
   userAgent?: string;
 
-  @Property({ fieldName: 'ip', nullable: true })
-  ip?: string;
+  /**
+   * Last known IP address of this device.
+   * Used for security monitoring, geolocation, and fraud detection.
+   */
+  @Property({ name: 'last_ip_address', nullable: true })
+  lastIpAddress?: string;
 
-  @Property({ fieldName: 'is_trusted', nullable: true })
-  isTrusted?: boolean;
+  /**
+   * Timestamp when the device record was created.
+   * Automatically set on entity creation.
+   */
+  @Property({ name: 'created_at', onCreate: () => new Date() })
+  createdAt: Date = new Date();
 
-  @Property({ fieldName: 'last_activity', nullable: true })
-  lastActivity?: Date;
+  /**
+   * Timestamp when the device record was last updated.
+   * Automatically updated on any entity modification.
+   */
+  @Property({ name: 'updated_at', onUpdate: () => new Date() })
+  updatedAt: Date = new Date();
 
-  @Property({ fieldName: 'created_on' })
-  createdOn!: Date;
+  // ========================================
+  // RELATIONSHIPS
+  // ========================================
 
-  @Property({ fieldName: 'expired_on', nullable: true })
-  expiredOn?: Date;
+  /**
+   * Active sessions associated with this device.
+   * One-to-many relationship - one device can have multiple active sessions.
+   * Used for session management and device activity tracking.
+   */
+  @OneToMany(() => SessionEntity, (session) => session.device)
+  sessions = new Collection<SessionEntity>(this);
 
-  @Property({ fieldName: 'terminated_on', nullable: true })
-  terminatedOn?: Date;
+  // ========================================
+  // DEPRECATED/COMMENTED FIELDS
+  // ========================================
+  // These fields were replaced by the current implementation above
+  // and are kept for reference only.
+
+  // @Property({ fieldName: 'device_info', type: 'text', nullable: true })
+  // deviceInfo?: string;
+
+  // @Property({ fieldName: 'refresh_token', type: 'text', nullable: true })
+  // refreshToken?: string;
+
+  // @Property({ fieldName: 'user_agent', type: 'text', nullable: true })
+  // userAgent?: string;
+
+  // @Property({ fieldName: 'ip', nullable: true })
+  // ip?: string;
+
+  // @Property({ fieldName: 'is_trusted', nullable: true })
+  // isTrusted?: boolean;
+
+  // @Property({ fieldName: 'last_activity', nullable: true })
+  // lastActivity?: Date;
+
+  // @Property({ fieldName: 'created_on' })
+  // createdOn!: Date;
+
+  // @Property({ fieldName: 'expired_on', nullable: true })
+  // expiredOn?: Date;
+
+  // @Property({ fieldName: 'terminated_on', nullable: true })
+  // terminatedOn?: Date;
 }

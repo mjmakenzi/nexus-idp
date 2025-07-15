@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class GoogleLoginDto {
   @IsString()
@@ -16,4 +16,24 @@ export class GoogleLoginDto {
   };
 }
 
-export class AppleLoginDto {}
+export class AppleLoginDto {
+  @IsString()
+  @IsNotEmpty()
+  identityToken!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  authorizationCode!: string;
+
+  @IsString()
+  @IsOptional()
+  name?: string;
+}
+
+export class AppleLogoutDto {
+  @IsString()
+  @IsNotEmpty()
+  apple_access_token!: string;
+}
+
+export class LogoutDto {}

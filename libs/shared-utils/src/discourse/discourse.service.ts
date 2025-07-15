@@ -24,8 +24,8 @@ export class DiscourseService {
     } else {
       avatarUrl = this.avatarService.generateImgproxyAvatarUrl(file, 256);
     }
-    const emailVerified = !!user.emailVerifiedOn;
-    const identityVerified = !!user.identityVerifiedOn;
+    const emailVerified = !!user.emailVerifiedAt;
+    const identityVerified = !!user.identityVerifiedAt;
     let addGroups = '';
     let removeGroups = '';
     if (identityVerified) {
@@ -39,11 +39,11 @@ export class DiscourseService {
       avatar_url: avatarUrl,
       email: emailVerified ? user.email : user.username + '@site.invalid',
       external_id: user.id,
-      name: user.profile?.displayName,
+      name: user.profile?.displayname,
       remove_groups: removeGroups,
       suppress_welcome_message: 'true',
       username: user.username,
-      website: user.profile?.urls,
+      website: user.profile?.website,
     };
 
     if (nonce) payload.nonce = nonce;

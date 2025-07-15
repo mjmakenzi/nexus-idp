@@ -1,119 +1,125 @@
-import {
-  OneClickEmailDto,
-  OneClickPhoneDto,
-  SendOptEmailDto,
-  SendOtpPhoneDto,
-} from '@app/otp';
-import { EntityRepository } from '@mikro-orm/postgresql';
+import { EntityRepository } from '@mikro-orm/core';
 import { OtpEntity } from '../entities/otp.entity';
 import { UserEntity } from '../entities/user.entity';
 
+export interface SendOtpPhoneDto {
+  phone_no: string;
+  type?: string;
+}
+
+export interface SendOptEmailDto {
+  email: string;
+  type?: string;
+}
+
+export interface OneClickPhoneDto {
+  phone_no: string;
+  otp: string;
+}
+
+export interface OneClickEmailDto {
+  email: string;
+  otp: string;
+}
+
 export class OtpRepository extends EntityRepository<OtpEntity> {
-  async createOtp(
-    dto: SendOtpPhoneDto,
-    userAgent: string,
-    ip: string,
-    now: Date,
-    otp: string,
-    user: UserEntity | null,
-  ) {
-    return await this.create({
-      user,
-      countryCode: dto.country_code,
-      phoneNo: dto.phone_no,
-      email: null,
-      otp,
-      actionType: dto.type ?? 'login',
-      stepNo: 0,
-      userAgent,
-      ip,
-      createdOn: now,
-      expiredOn: new Date(now.getTime() + 5 * 60 * 1000),
-    });
-  }
-
-  async createEmailOtp(
-    dto: SendOptEmailDto,
-    userAgent: string,
-    ip: string,
-    now: Date,
-    otp: string,
-    user: UserEntity | null,
-  ) {
-    return await this.create({
-      user,
-      countryCode: null,
-      phoneNo: null,
-      email: dto.email,
-      otp,
-      actionType: dto.type ?? 'login',
-      stepNo: 0,
-      userAgent,
-      ip,
-      createdOn: now,
-      expiredOn: new Date(now.getTime() + 5 * 60 * 1000),
-    });
-  }
-
-  async deleteOtp(dto: OneClickPhoneDto) {
-    return await this.nativeDelete({
-      countryCode: dto.country_code,
-      phoneNo: dto.phone_no,
-      otp: dto.otp,
-      actionType: 'login',
-    });
-  }
-
-  async deleteEmailOtp(dto: OneClickEmailDto) {
-    return await this.nativeDelete({
-      email: dto.email,
-      otp: dto.otp,
-      actionType: 'login',
-    });
-  }
-
-  async getOtp(
-    dto: OneClickPhoneDto | SendOtpPhoneDto,
-  ): Promise<OtpEntity | null> {
-    const validOtp = await this.findOne(
-      {
-        countryCode: dto.country_code,
-        phoneNo: dto.phone_no,
-        ...('otp' in dto && { otp: dto.otp }),
-        actionType: 'login',
-        expiredOn: { $gt: new Date() },
-      },
-      { orderBy: { createdOn: 'DESC' } },
-    );
-    return validOtp;
-  }
-
-  async getEmailOtp(
-    dto: OneClickEmailDto | SendOptEmailDto,
-  ): Promise<OtpEntity | null> {
-    const validOtp = await this.findOne(
-      {
-        email: dto.email,
-        ...('otp' in dto && { otp: dto.otp }),
-        actionType: 'type' in dto ? (dto.type ?? 'login') : 'login',
-        expiredOn: { $gt: new Date() },
-      },
-      { orderBy: { createdOn: 'DESC' } },
-    );
-    return validOtp;
-  }
-
-  async getRecentEmailOtp(dto: SendOptEmailDto): Promise<OtpEntity | null> {
-    const now = new Date();
-    const fourMinutesFromNow = new Date(now.getTime() + 4 * 60 * 1000);
-
-    return await this.findOne(
-      {
-        email: dto.email,
-        actionType: dto.type ?? 'login',
-        expiredOn: { $gt: fourMinutesFromNow },
-      },
-      { orderBy: { createdOn: 'DESC' } },
-    );
-  }
+  // async createOtp(
+  //   dto: SendOtpPhoneDto,
+  //   userAgent: string,
+  //   ip: string,
+  //   now: Date,
+  //   otp: string,
+  //   user: UserEntity | null,
+  // ) {
+  //   return await this.create({
+  //     user,
+  //     identifier: dto.phone_no,
+  //     otpHash: otp,
+  //     purpose: dto.type ?? 'login',
+  //     deliveryMethod: 'sms',
+  //     stepNumber: 0,
+  //     userAgent: userAgent,
+  //     ipAddress: ip,
+  //     createdAt: now,
+  //     expiresAt: new Date(now.getTime() + 5 * 60 * 1000),
+  //     maxAttempts: 3,
+  //     isUsed: false,
+  //   });
+  // async createEmailOtp(
+  //   dto: SendOptEmailDto,
+  //   userAgent: string,
+  //   ip: string,
+  //   now: Date,
+  //   otp: string,
+  //   user: UserEntity | null,
+  // ) {
+  //   return await this.create({
+  //     user,
+  //     identifier: dto.email,
+  //     otpHash: otp,
+  //     purpose: dto.type ?? 'login',
+  //     deliveryMethod: 'email',
+  //     stepNumber: 0,
+  //     userAgent: userAgent,
+  //     ipAddress: ip,
+  //     createdAt: now,
+  //     expiresAt: new Date(now.getTime() + 5 * 60 * 1000),
+  //     maxAttempts: 3,
+  //     isUsed: false,
+  //   });
+  // }
+  // async deleteOtp(dto: OneClickPhoneDto) {
+  //   return await this.nativeDelete({
+  //     identifier: dto.phone_no,
+  //     otpHash: dto.otp,
+  //     purpose: 'login',
+  //   });
+  // }
+  // async deleteEmailOtp(dto: OneClickEmailDto) {
+  //   return await this.nativeDelete({
+  //     identifier: dto.email,
+  //     otpHash: dto.otp,
+  //     purpose: 'login',
+  //   });
+  // }
+  // async getOtp(
+  //   dto: OneClickPhoneDto | SendOtpPhoneDto,
+  // ): Promise<OtpEntity | null> {
+  //   const validOtp = await this.findOne(
+  //     {
+  //       identifier: dto.phone_no,
+  //       ...('otp' in dto && { otpHash: dto.otp }),
+  //       purpose: 'login',
+  //       expiresAt: { $gt: new Date() },
+  //     },
+  //     { orderBy: { createdAt: 'DESC' } },
+  //   );
+  //   return validOtp;
+  // }
+  // async getEmailOtp(
+  //   dto: OneClickEmailDto | SendOptEmailDto,
+  // ): Promise<OtpEntity | null> {
+  //   const validOtp = await this.findOne(
+  //     {
+  //       identifier: dto.email,
+  //       ...('otp' in dto && { otpHash: dto.otp }),
+  //       purpose: 'type' in dto ? (dto.type ?? 'login') : 'login',
+  //       expiresAt: { $gt: new Date() },
+  //     },
+  //     { orderBy: { createdAt: 'DESC' } },
+  //   );
+  //   return validOtp;
+  // }
+  // async getRecentEmailOtp(dto: SendOptEmailDto): Promise<OtpEntity | null> {
+  //   const now = new Date();
+  //   const fourMinutesFromNow = new Date(now.getTime() + 4 * 60 * 1000);
+  //   return await this.findOne(
+  //     {
+  //       identifier: dto.email,
+  //       purpose: dto.type ?? 'login',
+  //       expiresAt: { $gt: fourMinutesFromNow },
+  //     },
+  //     { orderBy: { createdAt: 'DESC' } },
+  //   );
+  // }
 }

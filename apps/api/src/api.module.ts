@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
 import { AuthModule } from '@app/auth';
 import { DbModule } from '@app/db';
-import { OtpModule } from '@app/otp';
 import {
+  appleConfig,
   avatarConfig,
   discourseConfig,
   jwtConfig,
@@ -32,14 +31,13 @@ import { apiSchema } from './api.schema';
         kavenegarConfig,
         nodemailerConfig,
         rcaptchaConfig,
+        appleConfig,
       ],
       validationSchema: apiSchema.concat(combinedValidationSchema),
     }),
-    JwtModule.register({ global: true }),
     LoggerModule,
     DbModule,
     AuthModule,
-    OtpModule,
   ],
   controllers: [ApiController],
 })

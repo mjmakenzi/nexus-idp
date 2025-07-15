@@ -1,14 +1,35 @@
 import { Module } from '@nestjs/common';
-import { ProfileEntity, UserEntity } from '@app/db';
-import { CommonModule, JwtModule } from '@app/shared-utils';
+import {
+  DeviceEntity,
+  OtpEntity,
+  ProfileEntity,
+  RevokedTokenEntity,
+  UserEntity,
+} from '@app/db';
+import {
+  AppleModule,
+  DiscourseModule,
+  JwtModule,
+  PassportModule,
+} from '@app/shared-utils';
+import { UserModule } from '@app/user';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { AuthService } from './auth.service';
+import { AuthService } from './services/auth.service';
 
 @Module({
   imports: [
-    MikroOrmModule.forFeature([UserEntity, ProfileEntity]),
+    MikroOrmModule.forFeature([
+      OtpEntity,
+      UserEntity,
+      ProfileEntity,
+      RevokedTokenEntity,
+      DeviceEntity,
+    ]),
+    UserModule,
+    AppleModule,
     JwtModule,
-    CommonModule,
+    PassportModule,
+    DiscourseModule,
   ],
   providers: [AuthService],
   exports: [AuthService],

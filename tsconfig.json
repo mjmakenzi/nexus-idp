@@ -37,10 +37,10 @@
         "libs/otp/src/*"
       ],
       "@app/passport": [
-        "libs/shared-utils/passport/src"
+        "libs/passport/src"
       ],
       "@app/passport/*": [
-        "libs/shared-utils/passport/src/*"
+        "libs/passport/src/*"
       ],
       "@app/profile": [
         "libs/profile/src"

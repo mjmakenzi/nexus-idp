@@ -30,13 +30,12 @@ import config from './mikro-orm.config';
       UserEntity,
       ProfileEntity,
       AuditLogEntity,
-      OtpEntity,
       RevokedTokenEntity,
       SessionEntity,
       DeviceEntity,
+      OtpEntity,
     ]),
   ],
-  providers: [],
   exports: [MikroOrmModule],
 })
 export class DbModule {}

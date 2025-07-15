@@ -1,3 +1,0 @@
-export * from './profile.module';
-export * from './profile.service';
-export * from './dto/profile.dto';
