@@ -1,50 +1,30 @@
+import { SendOtpPhoneDto } from '@app/auth';
 import { EntityRepository } from '@mikro-orm/core';
-import { OtpEntity } from '../entities/otp.entity';
-import { UserEntity } from '../entities/user.entity';
-
-export interface SendOtpPhoneDto {
-  phone_no: string;
-  type?: string;
-}
-
-export interface SendOptEmailDto {
-  email: string;
-  type?: string;
-}
-
-export interface OneClickPhoneDto {
-  phone_no: string;
-  otp: string;
-}
-
-export interface OneClickEmailDto {
-  email: string;
-  otp: string;
-}
+// import { UserEntity } from '../../../user/src/entities/user.entity';
+import {
+  OtpDeliveryMethod,
+  OtpEntity,
+  OtpIdentifier,
+} from '../entities/otp.entity';
 
 export class OtpRepository extends EntityRepository<OtpEntity> {
-  // async createOtp(
-  //   dto: SendOtpPhoneDto,
-  //   userAgent: string,
-  //   ip: string,
-  //   now: Date,
-  //   otp: string,
-  //   user: UserEntity | null,
-  // ) {
-  //   return await this.create({
-  //     user,
-  //     identifier: dto.phone_no,
-  //     otpHash: otp,
-  //     purpose: dto.type ?? 'login',
-  //     deliveryMethod: 'sms',
-  //     stepNumber: 0,
-  //     userAgent: userAgent,
-  //     ipAddress: ip,
-  //     createdAt: now,
-  //     expiresAt: new Date(now.getTime() + 5 * 60 * 1000),
-  //     maxAttempts: 3,
-  //     isUsed: false,
-  //   });
+  async createOtp(
+    dto: SendOtpPhoneDto,
+    userAgent: string,
+    ip: string,
+    otp: string,
+    userId?: number,
+  ): Promise<OtpEntity> {
+    return await this.create({
+      identifier: OtpIdentifier.PHONE,
+      otpHash: otp,
+      purpose: dto.type,
+      deliveryMethod: OtpDeliveryMethod.SMS,
+      userAgent: userAgent,
+      ipAddress: ip,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+    });
+  }
   // async createEmailOtp(
   //   dto: SendOptEmailDto,
   //   userAgent: string,

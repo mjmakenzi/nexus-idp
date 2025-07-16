@@ -25,7 +25,7 @@ export class DiscourseService {
       avatarUrl = this.avatarService.generateImgproxyAvatarUrl(file, 256);
     }
     const emailVerified = !!user.emailVerifiedAt;
-    const identityVerified = !!user.identityVerifiedAt;
+    const identityVerified = !!user.phoneVerifiedAt;
     let addGroups = '';
     let removeGroups = '';
     if (identityVerified) {
@@ -43,7 +43,7 @@ export class DiscourseService {
       remove_groups: removeGroups,
       suppress_welcome_message: 'true',
       username: user.username,
-      website: user.profile?.website,
+      website: user.profile?.socialLinks?.website,
     };
 
     if (nonce) payload.nonce = nonce;

@@ -80,9 +80,10 @@ export class SessionEntity extends BaseEntity {
    * Generated when session is created, used as session reference
    * Must be unique across all sessions for proper session management
    * Used in JWT tokens and session validation logic
+   * NOT USED
    */
-  @Property({ name: 'session_id', unique: true })
-  sessionId!: string;
+  // @Property({ name: 'session_id', unique: true })
+  // sessionId!: string;
 
   /**
    * Hashed access token for this session (optional)
@@ -108,9 +109,10 @@ export class SessionEntity extends BaseEntity {
    * Nullable because sessions may inherit permissions from user roles
    * Used for fine-grained access control and permission validation
    * Example: ['read:profile', 'write:posts', 'admin:users']
+   * NOT USED
    */
-  @Property({ name: 'granted_permissions', type: 'json', nullable: true })
-  grantedPermissions?: string[];
+  // @Property({ name: 'granted_permissions', type: 'json', nullable: true })
+  // grantedPermissions?: string[];
 
   /**
    * User agent string from the client browser/application (optional)
@@ -136,9 +138,10 @@ export class SessionEntity extends BaseEntity {
    * Nullable because geolocation may not be available or enabled
    * Used for security monitoring and compliance reporting
    * Example: { country: 'US', city: 'New York', lat: 40.7128, lng: -74.0060 }
+   * NOT USED
    */
-  @Property({ name: 'geo_location', type: 'json', nullable: true })
-  geoLocation?: Record<string, unknown>;
+  // @Property({ name: 'geo_location', type: 'json', nullable: true })
+  // geoLocation?: Record<string, unknown>;
 
   /**
    * Timestamp when the session was created
@@ -181,9 +184,10 @@ export class SessionEntity extends BaseEntity {
    * Nullable because active sessions don't have termination reasons
    * Used for security analysis and user support
    * Examples: 'User logout', 'Security policy violation', 'Session timeout'
+   * NOT USED
    */
-  @Property({ name: 'termination_reason', nullable: true })
-  terminationReason?: string;
+  // @Property({ name: 'termination_reason', nullable: true })
+  // terminationReason?: string;
 
   /**
    * Whether this session should be remembered across browser sessions
@@ -191,8 +195,8 @@ export class SessionEntity extends BaseEntity {
    * Used for session persistence policy and security decisions
    * Affects session timeout and cleanup behavior
    */
-  @Property({ name: 'is_remembered', default: false })
-  isRemembered: boolean = false;
+  // @Property({ name: 'is_remembered', default: false })
+  //isRemembered: boolean = false;
 
   // @Property({ name: 'user_agent', nullable: true })
   // userAgent?: string;

@@ -38,10 +38,6 @@ export class DeviceEntity extends BaseEntity {
     | 'osVersion' // Operating system version (nullable)
     | 'browserName' // Web browser name (nullable)
     | 'browserVersion' // Web browser version (nullable)
-    | 'deviceMetadata' // Additional device information (nullable)
-    | 'trustedAt' // Timestamp when this device was marked as trusted (nullable)
-    | 'blockedAt' // Timestamp when this device was blocked/blacklisted (nullable)
-    | 'blockReason' // Reason for blocking this device (nullable)
     | 'userAgent' // User agent string from the browser/client (nullable)
     | 'lastIpAddress'; // Last known IP address of this device (nullable)
 
@@ -110,9 +106,10 @@ export class DeviceEntity extends BaseEntity {
   /**
    * Additional device information stored as JSON.
    * Flexible storage for screen resolution, hardware specs, etc.
+   * NOT USED
    */
-  @Property({ name: 'device_metadata', type: 'json', nullable: true })
-  deviceMetadata?: Record<string, unknown>;
+  // @Property({ name: 'device_metadata', type: 'json', nullable: true })
+  // deviceMetadata?: Record<string, unknown>;
 
   /**
    * Whether this device is trusted by the user.
@@ -126,16 +123,18 @@ export class DeviceEntity extends BaseEntity {
    * Whether this device is managed by an organization (MDM).
    * Managed devices may have different security policies.
    * Defaults to false for personal devices.
+   * NOT USED
    */
-  @Property({ name: 'is_managed', default: false })
-  isManaged: boolean = false;
+  // @Property({ name: 'is_managed', default: false })
+  // isManaged: boolean = false;
 
   /**
    * Timestamp when this device was first seen/registered.
    * Used for device age tracking and security assessments.
+   * NOT USED
    */
-  @Property({ name: 'first_seen_at' })
-  firstSeenAt!: Date;
+  // @Property({ name: 'first_seen_at' })
+  // firstSeenAt!: Date;
 
   /**
    * Timestamp when this device was last active.
@@ -147,23 +146,26 @@ export class DeviceEntity extends BaseEntity {
   /**
    * Timestamp when this device was marked as trusted.
    * Used for trust relationship tracking and security audits.
+   * NOT USED
    */
-  @Property({ name: 'trusted_at', nullable: true })
-  trustedAt?: Date;
+  // @Property({ name: 'trusted_at', nullable: true })
+  // trustedAt?: Date;
 
   /**
    * Timestamp when this device was blocked/blacklisted.
    * Used for security incident tracking and device management.
+   * NOT USED
    */
-  @Property({ name: 'blocked_at', nullable: true })
-  blockedAt?: Date;
+  // @Property({ name: 'blocked_at', nullable: true })
+  // blockedAt?: Date;
 
   /**
    * Reason for blocking this device (security violation, policy breach, etc.).
    * Used for security audits and incident response.
+   * NOT USED
    */
-  @Property({ name: 'block_reason', nullable: true })
-  blockReason?: string;
+  // @Property({ name: 'block_reason', nullable: true })
+  // blockReason?: string;
 
   /**
    * User agent string from the browser/client.

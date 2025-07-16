@@ -2,6 +2,7 @@ import {
   BaseEntity,
   Entity,
   EntityRepositoryType,
+  Enum,
   ManyToOne,
   OptionalProps,
   PrimaryKey,
@@ -9,6 +10,26 @@ import {
 } from '@mikro-orm/core';
 import { OtpRepository } from '../repositories/otp.repository';
 import { UserEntity } from './user.entity';
+
+export enum OtpDeliveryMethod {
+  SMS = 'sms',
+  EMAIL = 'email',
+  VOICE = 'voice',
+  APP = 'app',
+}
+
+export enum OtpPurpose {
+  LOGIN = 'login',
+  REGISTER = 'register',
+  PASSWORD_RESET = 'password_reset',
+  EMAIL_VERIFICATION = 'email_verification',
+  PHONE_VERIFICATION = 'phone_verification',
+}
+
+export enum OtpIdentifier {
+  EMAIL = 'email',
+  PHONE = 'phone',
+}
 
 /**
  * OTP (One-Time Password) entity for managing temporary authentication codes.
@@ -30,10 +51,11 @@ export class OtpEntity extends BaseEntity {
    */
   [OptionalProps]?:
     | 'user' // Associated user (nullable for anonymous OTPs)
-    | 'metadata' // Additional context data
     | 'userAgent' // Browser/client information
     | 'ipAddress' // IP address of OTP request
-    | 'verifiedAt'; // Verification timestamp
+    | 'verifiedAt' // Verification timestamp
+    | 'createdAt' // Creation timestamp
+    | 'stepNumber'; // Step number
 
   /** Unique identifier for the OTP record */
   @PrimaryKey()
@@ -42,6 +64,7 @@ export class OtpEntity extends BaseEntity {
   /**
    * Associated user account (nullable for anonymous OTPs).
    * Used when OTP is sent to an existing user for authentication.
+   * User relationship should be managed through the user module.
    */
   @ManyToOne(() => UserEntity, { nullable: true })
   user?: UserEntity;
@@ -51,7 +74,8 @@ export class OtpEntity extends BaseEntity {
    * Used to determine where to send the OTP code.
    */
   @Property()
-  identifier!: string; // email or phone
+  @Enum(() => OtpIdentifier)
+  identifier!: OtpIdentifier; // email or phone
 
   /**
    * Hashed OTP code for security (never store plain text OTPs).
@@ -64,20 +88,22 @@ export class OtpEntity extends BaseEntity {
    * Purpose of the OTP (login, register, password_reset, email_verification, etc.).
    * Determines the validation rules and post-verification actions.
    */
-  @Property()
-  purpose!: string; // Enum string: login, register, etc.
+  @Enum(() => OtpPurpose)
+  purpose!: OtpPurpose; // Enum string: login, register, etc.
 
   /**
    * Method used to deliver the OTP (email, sms, voice, app).
    * Determines the delivery mechanism and rate limiting rules.
    */
   @Property({ name: 'delivery_method' })
-  deliveryMethod!: string; // e.g., email, sms, voice, app
+  @Enum(() => OtpDeliveryMethod)
+  deliveryMethod!: OtpDeliveryMethod; // e.g., email, sms, voice, app
 
   /**
    * Step number in multi-step authentication flows.
    * Defaults to 1 for single-step OTPs.
    * Used for complex authentication sequences.
+
    */
   @Property({ name: 'step_number', default: 1 })
   stepNumber: number = 1;
@@ -85,23 +111,26 @@ export class OtpEntity extends BaseEntity {
   /**
    * Number of verification attempts made for this OTP.
    * Used to implement rate limiting and prevent brute force attacks.
+   * NOT USED
    */
-  @Property({ default: 0 })
-  attempts: number = 0;
+  // @Property({ default: 0 })
+  // attempts: number = 0;
 
   /**
    * Maximum allowed verification attempts before OTP is invalidated.
    * Defaults to 5 attempts for security.
+   * NOT USED
    */
-  @Property({ name: 'max_attempts', default: 5 })
-  maxAttempts: number = 5;
+  // @Property({ name: 'max_attempts', default: 5 })
+  // maxAttempts: number = 5;
 
   /**
    * Additional context data for the OTP (device info, session data, etc.).
    * Stored as JSON for flexibility in storing various metadata.
+   * NOT USED
    */
-  @Property({ type: 'json', nullable: true })
-  metadata?: Record<string, unknown>;
+  // @Property({ type: 'json', nullable: true })
+  // metadata?: Record<string, unknown>;
 
   /**
    * User agent string from the browser/client that requested the OTP.
@@ -141,7 +170,8 @@ export class OtpEntity extends BaseEntity {
   /**
    * Whether the OTP has been used for its intended purpose.
    * Prevents reuse of OTPs for security.
+   * NOT USED
    */
-  @Property({ name: 'is_used', default: false })
-  isUsed: boolean = false;
+  // @Property({ name: 'is_used', default: false })
+  // isUsed: boolean = false;
 }

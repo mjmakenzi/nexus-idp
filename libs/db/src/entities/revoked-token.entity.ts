@@ -34,10 +34,8 @@ export class RevokedTokenEntity extends BaseEntity {
    * These fields are nullable or may not be set initially.
    */
   [OptionalProps]?:
-    | 'jti' // JWT ID for token identification (nullable)
     | 'userAgent' // User agent string from the client (nullable)
-    | 'ipAddress' // IP address of the client (nullable)
-    | 'revokedBy'; // Identifier of who revoked the token (nullable)
+    | 'ipAddress'; // IP address of the client (nullable)
 
   /** Unique identifier for the revoked token record */
   @PrimaryKey()
@@ -71,9 +69,10 @@ export class RevokedTokenEntity extends BaseEntity {
    * JWT ID (JTI) for unique token identification.
    * Optional field for JWT tokens that include a JTI claim.
    * Used for token tracking and duplicate prevention.
+   * NOT USED
    */
-  @Property({ nullable: true })
-  jti?: string;
+  // @Property({ nullable: true })
+  // jti?: string;
 
   /**
    * User agent string from the client that used the token.
@@ -92,9 +91,10 @@ export class RevokedTokenEntity extends BaseEntity {
   /**
    * Timestamp when the token was originally issued.
    * Used for token lifecycle tracking and security audits.
+   * NOT USED
    */
-  @Property({ name: 'issued_at' })
-  issuedAt!: Date;
+  // @Property({ name: 'issued_at' })
+  // issuedAt!: Date;
 
   /**
    * Timestamp when the token would have naturally expired.
@@ -113,14 +113,16 @@ export class RevokedTokenEntity extends BaseEntity {
   /**
    * Reason for token revocation (logout, security breach, admin action, etc.).
    * Used for security incident response and compliance reporting.
+   * NOT USED
    */
-  @Property({ name: 'revocation_reason' })
-  revocationReason!: string;
+  // @Property({ name: 'revocation_reason' })
+  // revocationReason!: string;
 
   /**
    * Identifier of who revoked the token (user ID, admin ID, system).
    * Used for accountability and audit trail in security incidents.
+   * NOT USED
    */
-  @Property({ name: 'revoked_by', nullable: true })
-  revokedBy?: string;
+  // @Property({ name: 'revoked_by', nullable: true })
+  // revokedBy?: string;
 }

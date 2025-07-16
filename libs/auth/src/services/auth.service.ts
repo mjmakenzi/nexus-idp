@@ -4,28 +4,27 @@ import {
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
-import { UserRepository } from '@app/db';
-import { ProfileRepository } from '@app/db';
-import { DeviceRepository, RevokedTokenRepository } from '@app/db';
-import { FederatedIdentityEntity } from '@app/db/entities/federated-identity.entity';
-import { AuditLogRepository } from '@app/db/repositories/audit-log.repository';
-import {
-  AppleService,
-  CommonService,
-  DiscourseService,
-  JwtService,
-} from '@app/shared-utils';
-import { EntityManager } from '@mikro-orm/postgresql';
-import { FastifyRequest } from 'fastify';
-import { AppleLoginDto, AppleLogoutDto, GoogleLoginDto } from '../dto/auth.dto';
-import { GoogleTokenInfo } from '../interfaces/auth.interface';
+
+// import {
+//   DeviceRepository,
+//   RevokedTokenRepository,
+// } from '@app/db';
+// import { FederatedIdentityEntity } from '@app/db/entities/federated-identity.entity';
+// import { AuditLogRepository } from '@app/db/repositories/audit-log.repository';
+// import {
+//   AppleService,
+//   CommonService,
+//   DiscourseService,
+//   JwtService,
+// } from '@app/shared-utils';
+// import { EntityManager } from '@mikro-orm/postgresql';
+// import { FastifyRequest } from 'fastify';
+// import { AppleLoginDto, AppleLogoutDto, GoogleLoginDto } from '../dto/auth.dto';
+// import { GoogleTokenInfo } from '../interfaces/auth.interface';
 
 @Injectable()
 export class AuthService {
-  constructor() // private readonly userRepository: UserRepository,
-  // private readonly jwtService: JwtService,
-  // private readonly profileRepository: ProfileRepository,
-  // private readonly revokedTokenRepository: RevokedTokenRepository,
+  constructor() // private readonly revokedTokenRepository: RevokedTokenRepository, // private readonly profileRepository: ProfileRepository, // private readonly jwtService: JwtService, // private readonly userRepository: UserRepository,
   // private readonly deviceRepository: DeviceRepository,
   // private readonly em: EntityManager,
   // private readonly commonService: CommonService,

@@ -1,6 +1,6 @@
 import { EntityRepository } from '@mikro-orm/postgresql';
+// import { UserEntity } from '../../../user/src/entities/user.entity';
 import { RevokedTokenEntity } from '../entities/revoked-token.entity';
-import { UserEntity } from '../entities/user.entity';
 
 export class RevokedTokenRepository extends EntityRepository<RevokedTokenEntity> {
   // async getRevokedToken(

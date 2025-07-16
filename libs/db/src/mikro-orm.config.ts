@@ -9,7 +9,6 @@ import { resolve } from 'path';
 import { AuditLogEntity } from './entities/audit-log.entity';
 import { DeviceEntity } from './entities/device.entity';
 import { OtpEntity } from './entities/otp.entity';
-import { ProfileEntity } from './entities/profile.entity';
 import { RevokedTokenEntity } from './entities/revoked-token.entity';
 import { SessionEntity } from './entities/session.entity';
 import { UserEntity } from './entities/user.entity';
@@ -30,12 +29,11 @@ const config: Options<PostgreSqlDriver> = defineConfig({
   baseDir,
   extensions: [Migrator, SeedManager],
   entities: [
-    UserEntity,
-    ProfileEntity,
     AuditLogEntity,
     RevokedTokenEntity,
     SessionEntity,
     DeviceEntity,
+    UserEntity,
     OtpEntity,
   ],
   loadStrategy: LoadStrategy.JOINED,

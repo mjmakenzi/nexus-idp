@@ -116,11 +116,7 @@
     "moduleNameMapper": {
       "^@app/auth(|/.*)$": "<rootDir>/libs/auth/src/$1",
       "^@app/db(|/.*)$": "<rootDir>/libs/db/src/$1",
-      "^@app/otp(|/.*)$": "<rootDir>/libs/otp/src/$1",
-      "^@app/profile(|/.*)$": "<rootDir>/libs/profile/src/$1",
-      "^@app/session(|/.*)$": "<rootDir>/libs/session/src/$1",
       "^@app/shared-utils(|/.*)$": "<rootDir>/libs/shared-utils/src/$1",
-      "^@app/sso(|/.*)$": "<rootDir>/libs/sso/src/$1",
       "^@app/user(|/.*)$": "<rootDir>/libs/user/src/$1"
     }
   },

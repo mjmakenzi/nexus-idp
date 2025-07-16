@@ -32,26 +32,10 @@ export class ProfileEntity extends BaseEntity {
   [OptionalProps]?:
     | 'firstName' // User's first/given name
     | 'lastName' // User's last/family name
-    | 'middleName' // User's middle name
     | 'displayName' // Public display name (defaults to "کاربر تازه‌وارد")
-    | 'nickname' // Informal nickname or alias
     | 'avatarUrl' // Profile picture URL
-    | 'coverUrl' // Profile cover/banner image URL
     | 'bio' // User biography or description
-    | 'dateOfBirth' // User's birth date
-    | 'gender' // User's gender identity
-    | 'website' // Personal website URL
-    | 'socialLinks' // Social media profile links
-    | 'addressLine1' // Primary address line
-    | 'addressLine2' // Secondary address line
-    | 'city' // City of residence
-    | 'state' // State/province of residence
-    | 'postalCode' // Postal/ZIP code
-    | 'country' // Country of residence
-    | 'timezone' // User's timezone
-    | 'locale' // User's locale preference
-    | 'preferredLanguage' // User's preferred language
-    | 'preferences'; // User preferences and settings
+    | 'socialLinks'; // Social media profile links
 
   /** Unique identifier for the profile record */
   @PrimaryKey()
@@ -79,13 +63,6 @@ export class ProfileEntity extends BaseEntity {
   lastName?: string;
 
   /**
-   * User's middle name or initial.
-   * Optional field for complete name representation.
-   */
-  @Property({ name: 'middle_name', nullable: true })
-  middleName?: string;
-
-  /**
    * Public display name shown to other users.
    * Defaults to "کاربر تازه‌وارد" (New User in Persian) for new accounts.
    * Can be customized by the user.
@@ -94,25 +71,11 @@ export class ProfileEntity extends BaseEntity {
   displayname?: string;
 
   /**
-   * Informal nickname or alias chosen by the user.
-   * Used for casual interactions and personal branding.
-   */
-  @Property({ nullable: true })
-  nickname?: string;
-
-  /**
    * URL to the user's profile picture/avatar.
    * Used for visual identification and personalization.
    */
   @Property({ name: 'avatar_url', nullable: true })
   avatarUrl?: string;
-
-  /**
-   * URL to the user's profile cover/banner image.
-   * Used for profile customization and branding.
-   */
-  @Property({ name: 'cover_url', nullable: true })
-  coverUrl?: string;
 
   /**
    * User's biography or personal description.
@@ -124,23 +87,18 @@ export class ProfileEntity extends BaseEntity {
   /**
    * User's date of birth.
    * Used for age verification, birthday features, and compliance.
+   * NOT USED
    */
-  @Property({ name: 'date_of_birth', nullable: true })
-  dateOfBirth?: Date;
+  // @Property({ name: 'date_of_birth', nullable: true })
+  // dateOfBirth?: Date;
 
   /**
    * User's gender identity.
    * Used for personalization and demographic analytics.
+   * NOT USED
    */
-  @Property({ nullable: true })
-  gender?: string;
-
-  /**
-   * User's personal website URL.
-   * Used for professional networking and personal branding.
-   */
-  @Property({ nullable: true })
-  website?: string;
+  // @Property({ nullable: true })
+  // gender?: string;
 
   /**
    * Social media profile links (Twitter, LinkedIn, Instagram, etc.).
@@ -152,72 +110,73 @@ export class ProfileEntity extends BaseEntity {
   /**
    * Primary address line for shipping, billing, or location services.
    * Used for e-commerce, delivery, and location-based features.
+   * NOT USED
    */
-  @Property({ name: 'address_line1', nullable: true })
-  addressLine1?: string;
+  // @Property({ name: 'address_line1', nullable: true })
+  // addressLine1?: string;
 
   /**
    * Secondary address line (apartment, suite, etc.).
    * Additional address details for precise location.
+   * NOT USED
    */
-  @Property({ name: 'address_line2', nullable: true })
-  addressLine2?: string;
+  // @Property({ name: 'address_line2', nullable: true })
+  // addressLine2?: string;
 
   /**
    * City of residence.
    * Used for location-based services and regional features.
+   * NOT USED
    */
-  @Property({ nullable: true })
-  city?: string;
-
-  /**
-   * State/province of residence.
-   * Used for location-based services and regional features.
-   */
-  @Property({ nullable: true })
-  state?: string;
+  // @Property({ nullable: true })
+  // city?: string;
 
   /**
    * Postal/ZIP code.
    * Used for shipping, billing, and location services.
+   * NOT USED
    */
-  @Property({ name: 'postal_code', nullable: true })
-  postalCode?: string;
+  // @Property({ name: 'postal_code', nullable: true })
+  // postalCode?: string;
 
   /**
    * Country of residence.
    * Used for internationalization, compliance, and regional features.
+   * NOT USED
    */
-  @Property({ nullable: true })
-  country?: string;
+  // @Property({ nullable: true })
+  // country?: string;
 
   /**
    * User's timezone (e.g., "America/New_York", "Europe/London").
    * Used for displaying local times and scheduling features.
+   * NOT USED
    */
-  @Property({ nullable: true })
-  timezone?: string;
+  // @Property({ nullable: true })
+  // timezone?: string;
 
   /**
    * User's locale preference (e.g., "en-US", "fa-IR").
    * Used for internationalization and content localization.
+   * NOT USED
    */
-  @Property({ nullable: true })
-  locale?: string;
+  // @Property({ nullable: true })
+  // locale?: string;
 
   /**
    * User's preferred language for content and communications.
    * Used for multilingual support and content delivery.
+   * NOT USED
    */
-  @Property({ name: 'preferred_language', nullable: true })
-  preferredLanguage?: string;
+  // @Property({ name: 'preferred_language', nullable: true })
+  // preferredLanguage?: string;
 
   /**
    * User preferences and settings stored as JSON.
    * Flexible storage for UI preferences, notification settings, etc.
    */
-  @Property({ type: 'json', nullable: true })
-  preferences?: Record<string, unknown>;
+  // @Property({ type: 'json', nullable: true })
+  // preferences?: Record<string, unknown>;
 
   /**
    * Timestamp when the profile was created.

@@ -1,3 +1,4 @@
+import { OtpPurpose } from '@app/auth';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class SendOtpPhoneDto {
@@ -11,7 +12,7 @@ export class SendOtpPhoneDto {
 
   @IsString()
   @IsNotEmpty()
-  type!: string;
+  type!: OtpPurpose;
 
   @IsString()
   @IsNotEmpty()

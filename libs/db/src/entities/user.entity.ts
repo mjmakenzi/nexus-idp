@@ -14,7 +14,6 @@ import { UserRepository } from '../repositories/user.repository';
 import { ApiKeyEntity } from './api-key.entity';
 import { DeviceEntity } from './device.entity';
 import { FederatedIdentityEntity } from './federated-identity.entity';
-import { OtpEntity } from './otp.entity';
 import { ProfileEntity } from './profile.entity';
 import { SecurityEventEntity } from './security-event.entity';
 import { SessionEntity } from './session.entity';
@@ -41,8 +40,6 @@ export class UserEntity extends BaseEntity {
    */
   [OptionalProps]?:
     | 'deletedAt' // Soft delete timestamp
-    | 'createdBy' // User who created this account (for admin operations)
-    | 'updatedBy' // User who last updated this account
     | 'federatedIdentities' // OAuth/SSO identities (Google, Apple, etc.)
     | 'userRoles' // User's assigned roles and permissions
     | 'otps' // One-time password codes for authentication
@@ -54,21 +51,13 @@ export class UserEntity extends BaseEntity {
     | 'passwordHash' // Hashed password (null for OAuth users)
     | 'passwordSalt' // Password salt for security
     | 'passwordChangedAt' // Last password change timestamp
-    | 'totpSecret' // Time-based OTP secret for MFA
-    | 'backupCodes' // Backup codes for MFA recovery
     | 'emailVerifiedAt' // Email verification timestamp
     | 'phoneVerifiedAt' // Phone verification timestamp
-    | 'identityVerifiedAt' // Identity verification timestamp
-    | 'mfaEnabled' // Whether MFA is enabled
-    | 'mfaMethod' // MFA method (totp, sms, email)
     | 'failedLoginAttempts' // Count of failed login attempts
     | 'lockedUntil' // Account lock expiration timestamp
     | 'lastLoginAt' // Last successful login timestamp
     | 'lastLoginIp' // IP address of last login
-    | 'status' // Account status (active, suspended, etc.)
-    | 'termsAcceptedAt' // Terms of service acceptance timestamp
-    | 'termsVersion' // Version of terms accepted
-    | 'privacyAcceptedAt'; // Privacy policy acceptance timestamp
+    | 'status'; // Account status (active, suspended, etc.)
 
   /** Unique identifier for the user account */
   @PrimaryKey()
@@ -116,9 +105,10 @@ export class UserEntity extends BaseEntity {
   /**
    * External system identifier for integration purposes.
    * Used when syncing users from external systems.
+   * NOT USED
    */
-  @Property({ name: 'external_id', nullable: true })
-  externalId?: string;
+  // @Property({ name: 'external_id', nullable: true })
+  // externalId?: string;
 
   /**
    * Bcrypt-hashed password for local authentication.
@@ -144,23 +134,26 @@ export class UserEntity extends BaseEntity {
   /**
    * Password version for tracking password changes.
    * Incremented when password is changed to invalidate old sessions.
+   * NOT USED
    */
-  @Property({ name: 'password_version' })
-  passwordVersion!: number;
+  // @Property({ name: 'password_version' })
+  // passwordVersion!: number;
 
   /**
    * Secret key for Time-based One-Time Password (TOTP) generation.
    * Used for MFA authentication via authenticator apps.
+   * NOT USED
    */
-  @Property({ name: 'totp_secret', nullable: true })
-  totpSecret?: string;
+  // @Property({ name: 'totp_secret', nullable: true })
+  // totpSecret?: string;
 
   /**
    * Backup codes for MFA recovery when TOTP is unavailable.
    * Stored as hashed values for security.
+   * NOT USED
    */
-  @Property({ name: 'backup_codes', type: 'json', nullable: true })
-  backupCodes?: string[];
+  //@Property({ name: 'backup_codes', type: 'json', nullable: true })
+  // backupCodes?: string[];
 
   /**
    * Timestamp when email address was verified.
@@ -179,23 +172,26 @@ export class UserEntity extends BaseEntity {
   /**
    * Timestamp when user identity was verified (KYC process).
    * Required for high-security operations and compliance.
+   * NOT USED
    */
-  @Property({ name: 'identity_verified_at', nullable: true })
-  identityVerifiedAt?: Date;
+  // @Property({ name: 'identity_verified_at', nullable: true })
+  // identityVerifiedAt?: Date;
 
   /**
    * Whether Multi-Factor Authentication is enabled for this account.
    * Defaults to false for new accounts.
+   * NOT USED
    */
-  @Property({ default: false })
-  mfaEnabled: boolean = false;
+  // @Property({ default: false })
+  // mfaEnabled: boolean = false;
 
   /**
    * Method used for MFA (totp, sms, email, etc.).
    * Determines which MFA flow to use during authentication.
+   * NOT USED
    */
-  @Property({ name: 'mfa_method', nullable: true })
-  mfaMethod?: string;
+  // @Property({ name: 'mfa_method', nullable: true })
+  // mfaMethod?: string;
 
   /**
    * Counter for consecutive failed login attempts.
@@ -235,23 +231,26 @@ export class UserEntity extends BaseEntity {
   /**
    * Timestamp when user accepted the Terms of Service.
    * Required for account activation and compliance.
+   * NOT USED
    */
-  @Property({ name: 'terms_accepted_at', nullable: true })
-  termsAcceptedAt?: Date;
+  // @Property({ name: 'terms_accepted_at', nullable: true })
+  // termsAcceptedAt?: Date;
 
   /**
    * Version of Terms of Service that was accepted.
    * Used to track policy changes and re-acceptance requirements.
+   * NOT USED
    */
-  @Property({ name: 'terms_version', nullable: true })
-  termsVersion?: string;
+  // @Property({ name: 'terms_version', nullable: true })
+  // termsVersion?: string;
 
   /**
    * Timestamp when user accepted the Privacy Policy.
    * Required for GDPR compliance and data processing consent.
+   * NOT USED
    */
-  @Property({ name: 'privacy_accepted_at', nullable: true })
-  privacyAcceptedAt?: Date;
+  // @Property({ name: 'privacy_accepted_at', nullable: true })
+  // privacyAcceptedAt?: Date;
 
   /**
    * Timestamp when the user account was created.
@@ -277,16 +276,18 @@ export class UserEntity extends BaseEntity {
   /**
    * Identifier of the user/admin who created this account.
    * Used for audit trails in admin operations.
+   * NOT USED
    */
-  @Property({ name: 'created_by', nullable: true })
-  createdBy?: string;
+  // @Property({ name: 'created_by', nullable: true })
+  // createdBy?: string;
 
   /**
    * Identifier of the user/admin who last updated this account.
    * Used for audit trails in admin operations.
+   * NOT USED
    */
-  @Property({ name: 'updated_by', nullable: true })
-  updatedBy?: string;
+  // @Property({ name: 'updated_by', nullable: true })
+  // updatedBy?: string;
 
   // ========================================
   // RELATIONSHIPS
@@ -319,9 +320,11 @@ export class UserEntity extends BaseEntity {
    * One-time password codes for authentication.
    * One-to-many relationship - user can have multiple active OTPs.
    * Used for SMS/email verification and password reset.
+   * NOTE: This relationship is commented out to avoid circular dependencies.
+   * OTPs should be managed through the auth module.
    */
-  @OneToMany(() => OtpEntity, (otp) => otp.user)
-  otps = new Collection<OtpEntity>(this);
+  // @OneToMany(() => OtpEntity, (otp) => otp.user)
+  // otps = new Collection<OtpEntity>(this);
 
   /**
    * Active user sessions across different devices/browsers.

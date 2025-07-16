@@ -1,6 +1,6 @@
 import { EntityRepository } from '@mikro-orm/postgresql';
+// import { UserEntity } from '../../../user/src/entities/user.entity';
 import { DeviceEntity } from '../entities/device.entity';
-import { UserEntity } from '../entities/user.entity';
 
 export class DeviceRepository extends EntityRepository<DeviceEntity> {
   // async findDevice(user: UserEntity, refreshToken: string) {
