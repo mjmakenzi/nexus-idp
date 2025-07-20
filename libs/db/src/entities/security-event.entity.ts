@@ -61,28 +61,32 @@ export class SecurityEventEntity extends BaseEntity {
    * Specific type of security event (login, logout, password_change, etc.).
    * Used for event categorization and automated response triggers.
    */
-  @Property({ name: 'event_type' })
+  @Property({ fieldName: 'event_type', serializedName: 'event_type' })
   eventType!: string; // e.g. login/logout/password_change
 
   /**
    * Category of the security event (auth, account, security, etc.).
    * Used for event grouping, filtering, and reporting.
    */
-  @Property({ name: 'event_category' })
+  @Property({ fieldName: 'event_category', serializedName: 'event_category' })
   eventCategory!: string; // e.g. auth/account/security
 
   /**
    * Severity level of the security event (info, low, medium, high, critical).
    * Used for prioritization, alerting, and response planning.
    */
-  @Property()
+  @Property({ fieldName: 'severity', serializedName: 'severity' })
   severity!: string; // e.g. info/low/medium/high/critical
 
   /**
    * Risk assessment score for the security event.
    * Used for automated risk analysis and threat detection.
    */
-  @Property({ name: 'risk_score', nullable: true })
+  @Property({
+    fieldName: 'risk_score',
+    serializedName: 'risk_score',
+    nullable: true,
+  })
   riskScore?: string;
 
   /**
@@ -90,14 +94,23 @@ export class SecurityEventEntity extends BaseEntity {
    * Flexible storage for event-specific details, error messages, etc.
    * Examples: failed login attempts, suspicious patterns, device info.
    */
-  @Property({ name: 'event_data', type: 'json', nullable: true })
+  @Property({
+    fieldName: 'event_data',
+    serializedName: 'event_data',
+    type: 'json',
+    nullable: true,
+  })
   eventData?: Record<string, unknown>;
 
   /**
    * IP address associated with the security event.
    * Used for geolocation tracking, threat intelligence, and fraud detection.
    */
-  @Property({ name: 'ip_address', nullable: true })
+  @Property({
+    fieldName: 'ip_address',
+    serializedName: 'ip_address',
+    nullable: true,
+  })
   ipAddress?: string;
 
   /**
@@ -105,55 +118,84 @@ export class SecurityEventEntity extends BaseEntity {
    * Stored as JSON with country, city, coordinates, etc.
    * Used for location-based security analysis and threat detection.
    */
-  @Property({ name: 'geo_location', type: 'json', nullable: true })
+  @Property({
+    fieldName: 'geo_location',
+    serializedName: 'geo_location',
+    type: 'json',
+    nullable: true,
+  })
   geoLocation?: Record<string, unknown>;
 
   /**
    * User agent string from the browser/client involved in the event.
    * Used for client identification and security monitoring.
    */
-  @Property({ name: 'user_agent', nullable: true })
+  @Property({
+    fieldName: 'user_agent',
+    serializedName: 'user_agent',
+    nullable: true,
+  })
   userAgent?: string;
 
   /**
    * Session identifier associated with the security event.
    * Used for session tracking and correlation with other events.
    */
-  @Property({ name: 'session_id', nullable: true })
+  @Property({
+    fieldName: 'session_id',
+    serializedName: 'session_id',
+    nullable: true,
+  })
   sessionId?: string;
 
   /**
    * Timestamp when the security event occurred.
    * Used for chronological ordering and time-based analysis.
    */
-  @Property({ name: 'occurred_at' })
+  @Property({ fieldName: 'occurred_at', serializedName: 'occurred_at' })
   occurredAt!: Date;
 
   /**
    * Whether this security event requires manual action or investigation.
    * Used for alerting, ticket creation, and workflow management.
    */
-  @Property({ name: 'requires_action', default: false })
+  @Property({
+    fieldName: 'requires_action',
+    serializedName: 'requires_action',
+    default: false,
+  })
   requiresAction: boolean = false;
 
   /**
    * Whether this security event has been resolved or addressed.
    * Used for incident tracking and resolution management.
    */
-  @Property({ name: 'is_resolved', default: false })
+  @Property({
+    fieldName: 'is_resolved',
+    serializedName: 'is_resolved',
+    default: false,
+  })
   isResolved: boolean = false;
 
   /**
    * Identifier of who resolved the security event (user ID, admin ID, system).
    * Used for accountability and audit trail in incident response.
    */
-  @Property({ name: 'resolved_by', nullable: true })
+  @Property({
+    fieldName: 'resolved_by',
+    serializedName: 'resolved_by',
+    nullable: true,
+  })
   resolvedBy?: string;
 
   /**
    * Timestamp when the security event was resolved.
    * Used for incident response metrics and resolution tracking.
    */
-  @Property({ name: 'resolved_at', nullable: true })
+  @Property({
+    fieldName: 'resolved_at',
+    serializedName: 'resolved_at',
+    nullable: true,
+  })
   resolvedAt?: Date;
 }

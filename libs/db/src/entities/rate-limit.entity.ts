@@ -49,7 +49,7 @@ export class RateLimitEntity extends BaseEntity {
    * Used to apply different rate limits for different operations.
    * Examples: "login", "otp_send", "api_request", "password_reset"
    */
-  @Property({ name: 'limit_type' })
+  @Property({ fieldName: 'limit_type', serializedName: 'limit_type' })
   limitType!: string; // e.g. login, otp, api
 
   /**
@@ -71,7 +71,7 @@ export class RateLimitEntity extends BaseEntity {
    * Maximum number of attempts allowed within the time window.
    * When attempts reach this limit, the identifier is blocked.
    */
-  @Property({ name: 'max_attempts' })
+  @Property({ fieldName: 'max_attempts', serializedName: 'max_attempts' })
   maxAttempts!: number;
 
   /**
@@ -79,21 +79,21 @@ export class RateLimitEntity extends BaseEntity {
    * Used to calculate window boundaries and reset attempts.
    * Examples: 60 (1 minute), 3600 (1 hour), 86400 (1 day)
    */
-  @Property({ name: 'window_seconds' })
+  @Property({ fieldName: 'window_seconds', serializedName: 'window_seconds' })
   windowSeconds!: number;
 
   /**
    * Start timestamp of the current rate limit window.
    * Used to determine if the window has expired and needs reset.
    */
-  @Property({ name: 'window_start' })
+  @Property({ fieldName: 'window_start', serializedName: 'window_start' })
   windowStart!: Date;
 
   /**
    * End timestamp of the current rate limit window.
    * Used to determine when the window expires and attempts reset.
    */
-  @Property({ name: 'window_end' })
+  @Property({ fieldName: 'window_end', serializedName: 'window_end' })
   windowEnd!: Date;
 
   /**
@@ -101,14 +101,22 @@ export class RateLimitEntity extends BaseEntity {
    * Set when max attempts are reached, null when not blocked.
    * Used for temporary blocking and automatic unblocking.
    */
-  @Property({ name: 'blocked_until', nullable: true })
+  @Property({
+    fieldName: 'blocked_until',
+    serializedName: 'blocked_until',
+    nullable: true,
+  })
   blockedUntil?: Date;
 
   /**
    * IP address associated with this rate limit record.
    * Used for IP-based rate limiting and security monitoring.
    */
-  @Property({ name: 'ip_address', nullable: true })
+  @Property({
+    fieldName: 'ip_address',
+    serializedName: 'ip_address',
+    nullable: true,
+  })
   ipAddress?: string;
 
   /**
@@ -116,20 +124,28 @@ export class RateLimitEntity extends BaseEntity {
    * Flexible storage for user agent, request details, error messages, etc.
    * Examples: {"user_agent": "Chrome/91.0", "reason": "brute_force"}
    */
-  @Property({ type: 'json', nullable: true })
+  @Property({ fieldName: 'json', nullable: true })
   metadata?: Record<string, unknown>;
 
   /**
    * Timestamp when the rate limit record was created.
    * Automatically set on entity creation.
    */
-  @Property({ name: 'created_at', onCreate: () => new Date() })
+  @Property({
+    fieldName: 'created_at',
+    serializedName: 'created_at',
+    onCreate: () => new Date(),
+  })
   createdAt: Date = new Date();
 
   /**
    * Timestamp when the rate limit record was last updated.
    * Automatically updated on any entity modification.
    */
-  @Property({ name: 'updated_at', onUpdate: () => new Date() })
+  @Property({
+    fieldName: 'updated_at',
+    serializedName: 'updated_at',
+    onUpdate: () => new Date(),
+  })
   updatedAt: Date = new Date();
 }

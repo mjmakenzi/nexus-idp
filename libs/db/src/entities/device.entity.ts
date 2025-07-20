@@ -49,7 +49,7 @@ export class DeviceEntity extends BaseEntity {
    * Associated user account that owns this device.
    * Many-to-one relationship - one user can have multiple devices.
    */
-  @ManyToOne({ name: 'user_id' })
+  @ManyToOne({ fieldName: 'user_id' })
   user!: UserEntity;
 
   /**
@@ -57,7 +57,10 @@ export class DeviceEntity extends BaseEntity {
    * Generated from hardware/software characteristics to uniquely identify devices.
    * Used for device recognition across sessions and security monitoring.
    */
-  @Property({ name: 'device_fingerprint' })
+  @Property({
+    fieldName: 'device_fingerprint',
+    serializedName: 'device_fingerprint',
+  })
   @Unique()
   deviceFingerprint!: string;
 
@@ -65,42 +68,58 @@ export class DeviceEntity extends BaseEntity {
    * User-friendly name for the device (e.g., "John's iPhone", "Work Laptop").
    * Can be set by the user for easier device management.
    */
-  @Property({ name: 'device_name', nullable: true })
+  @Property({
+    fieldName: 'device_name',
+    serializedName: 'device_name',
+    nullable: true,
+  })
   deviceName?: string;
 
   /**
    * Device category (mobile, desktop, tablet, etc.).
    * Used for device-specific features and security policies.
    */
-  @Property({ name: 'device_type' })
+  @Property({ fieldName: 'device_type', serializedName: 'device_type' })
   deviceType!: string; // mobile/desktop/tablet
 
   /**
    * Operating system name (e.g., "Windows", "macOS", "iOS", "Android").
    * Used for device-specific features and security policies.
    */
-  @Property({ name: 'os_name', nullable: true })
+  @Property({ fieldName: 'os_name', serializedName: 'os_name', nullable: true })
   osName?: string;
 
   /**
    * Operating system version (e.g., "10.15.7", "14.0").
    * Used for security assessments and compatibility checks.
    */
-  @Property({ name: 'os_version', nullable: true })
+  @Property({
+    fieldName: 'os_version',
+    serializedName: 'os_version',
+    nullable: true,
+  })
   osVersion?: string;
 
   /**
    * Web browser name (e.g., "Chrome", "Safari", "Firefox").
    * Used for browser-specific features and security policies.
    */
-  @Property({ name: 'browser_name', nullable: true })
+  @Property({
+    fieldName: 'browser_name',
+    serializedName: 'browser_name',
+    nullable: true,
+  })
   browserName?: string;
 
   /**
    * Web browser version (e.g., "91.0.4472.124").
    * Used for security assessments and compatibility checks.
    */
-  @Property({ name: 'browser_version', nullable: true })
+  @Property({
+    fieldName: 'browser_version',
+    serializedName: 'browser_version',
+    nullable: true,
+  })
   browserVersion?: string;
 
   /**
@@ -116,7 +135,11 @@ export class DeviceEntity extends BaseEntity {
    * Trusted devices may have relaxed security requirements.
    * Defaults to false for new devices.
    */
-  @Property({ name: 'is_trusted', default: false })
+  @Property({
+    fieldName: 'is_trusted',
+    serializedName: 'is_trusted',
+    default: false,
+  })
   isTrusted: boolean = false;
 
   /**
@@ -140,7 +163,7 @@ export class DeviceEntity extends BaseEntity {
    * Timestamp when this device was last active.
    * Used for device activity tracking and cleanup of inactive devices.
    */
-  @Property({ name: 'last_seen_at' })
+  @Property({ fieldName: 'last_seen_at', serializedName: 'last_seen_at' })
   lastSeenAt!: Date;
 
   /**
@@ -171,28 +194,44 @@ export class DeviceEntity extends BaseEntity {
    * User agent string from the browser/client.
    * Used for device identification and security monitoring.
    */
-  @Property({ name: 'user_agent', nullable: true })
+  @Property({
+    fieldName: 'user_agent',
+    serializedName: 'user_agent',
+    nullable: true,
+  })
   userAgent?: string;
 
   /**
    * Last known IP address of this device.
    * Used for security monitoring, geolocation, and fraud detection.
    */
-  @Property({ name: 'last_ip_address', nullable: true })
+  @Property({
+    fieldName: 'last_ip_address',
+    serializedName: 'last_ip_address',
+    nullable: true,
+  })
   lastIpAddress?: string;
 
   /**
    * Timestamp when the device record was created.
    * Automatically set on entity creation.
    */
-  @Property({ name: 'created_at', onCreate: () => new Date() })
+  @Property({
+    fieldName: 'created_at',
+    serializedName: 'created_at',
+    onCreate: () => new Date(),
+  })
   createdAt: Date = new Date();
 
   /**
    * Timestamp when the device record was last updated.
    * Automatically updated on any entity modification.
    */
-  @Property({ name: 'updated_at', onUpdate: () => new Date() })
+  @Property({
+    fieldName: 'updated_at',
+    serializedName: 'updated_at',
+    onUpdate: () => new Date(),
+  })
   updatedAt: Date = new Date();
 
   // ========================================

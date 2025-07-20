@@ -1,37 +1,106 @@
-import {
-  BadRequestException,
-  Injectable,
-  Req,
-  UnauthorizedException,
-} from '@nestjs/common';
-
-// import {
-//   DeviceRepository,
-//   RevokedTokenRepository,
-// } from '@app/db';
-// import { FederatedIdentityEntity } from '@app/db/entities/federated-identity.entity';
-// import { AuditLogRepository } from '@app/db/repositories/audit-log.repository';
-// import {
-//   AppleService,
-//   CommonService,
-//   DiscourseService,
-//   JwtService,
-// } from '@app/shared-utils';
-// import { EntityManager } from '@mikro-orm/postgresql';
-// import { FastifyRequest } from 'fastify';
-// import { AppleLoginDto, AppleLogoutDto, GoogleLoginDto } from '../dto/auth.dto';
-// import { GoogleTokenInfo } from '../interfaces/auth.interface';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { LoginPhoneDto } from '@app/auth';
+import { OtpRepository, ProfileRepository, UserRepository } from '@app/db';
+import { CommonService, JwtService } from '@app/shared-utils';
+import { FastifyRequest } from 'fastify';
 
 @Injectable()
 export class AuthService {
-  constructor() // private readonly revokedTokenRepository: RevokedTokenRepository, // private readonly profileRepository: ProfileRepository, // private readonly jwtService: JwtService, // private readonly userRepository: UserRepository,
-  // private readonly deviceRepository: DeviceRepository,
-  // private readonly em: EntityManager,
-  // private readonly commonService: CommonService,
-  // private readonly appleService: AppleService,
-  // private readonly discourseService: DiscourseService,
-  // private readonly auditLogRepository: AuditLogRepository,
-  {}
+  constructor(
+    private readonly otpRepo: OtpRepository,
+    private readonly userRepo: UserRepository,
+    private readonly profileRepo: ProfileRepository,
+    private readonly commonService: CommonService,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  async loginPhone(dto: LoginPhoneDto) {
+    // 1. Check if OTP exists and is valid
+    // const validOtp = await this.otpRepo.getOtp(dto);
+    // if (!validOtp) {
+    //   return { status: 'error', message: 'invalid_otp' };
+    // }
+    // 2. Delete the OTP after use
+    // await this.otpRepo.deleteOtp(dto);
+
+    // 3. Find or register the user
+    let user = await this.userRepo.getUserByPhone(dto);
+    let eventAction = 'login';
+    if (!user) {
+      // Register new user
+      eventAction = 'register/login';
+      const username = this.commonService.generateRandomUserName();
+      const { passwordHash, passwordSalt } =
+        await this.commonService.generateRandomPassword();
+
+      user = await this.userRepo.createUser(
+        dto,
+        username,
+        passwordHash,
+        passwordSalt,
+      );
+
+      if (!user) {
+        return { status: 'error', message: 'db_error_insert' };
+      }
+
+      await this.profileRepo.createProfile(user);
+
+      // Optionally: sync to Discourse, etc.
+      // await this.discourseService.syncSsoRecord(user);
+    } else {
+      // Update phone verified if not set
+      if (!user.phoneVerifiedAt) {
+        await this.userRepo.updateUser(user.id, {
+          phoneVerifiedAt: new Date(),
+        });
+      }
+    }
+
+    // 4. Issue tokens
+    const accessToken = await this.jwtService.issueAccessToken(user);
+    // const refreshToken = await this.jwtService.issueRefreshToken(user);
+
+    return {
+      status: 'success',
+      data: {
+        user_id: String(user.id),
+        access_token: accessToken,
+        token_type: 'bearer',
+        // refresh_token: refreshToken,
+        action: eventAction,
+      },
+    };
+  }
+
+  async refreshToken(req: FastifyRequest) {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        throw new UnauthorizedException('Invalid authorization header');
+      }
+      const refreshToken = authHeader.substring(7);
+      const payload = await this.jwtService.verifyToken(refreshToken);
+      if (!payload) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+      const user = await this.userRepo.getUserById(Number(payload.sub));
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+      const accessToken = await this.jwtService.issueAccessToken(user);
+      const newRefreshToken = await this.jwtService.issueRefreshToken(user);
+      return {
+        status: 'success',
+        data: {
+          access_token: accessToken,
+          refresh_token: newRefreshToken,
+        },
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
 
   // async googleLogin(dto: GoogleLoginDto) {
   //   try {

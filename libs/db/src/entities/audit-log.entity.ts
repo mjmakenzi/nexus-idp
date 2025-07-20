@@ -46,7 +46,7 @@ export class AuditLogEntity extends BaseEntity {
    * Many-to-one relationship - tracks who is responsible for the action.
    * Used for accountability and user activity tracking.
    */
-  @ManyToOne({ name: 'user_id' })
+  @ManyToOne({ fieldName: 'user_id' })
   user!: UserEntity;
 
   /**
@@ -54,35 +54,35 @@ export class AuditLogEntity extends BaseEntity {
    * Many-to-one relationship - used when actions affect other users.
    * Examples: admin modifying user account, user blocking another user.
    */
-  @ManyToOne(() => UserEntity, { nullable: true })
+  @ManyToOne(() => UserEntity, { fieldName: 'target_user_id', nullable: true })
   targetUser?: UserEntity;
 
   /**
    * Type of actor who performed the action (user, system, admin, api).
    * Used to categorize the source of the action for analysis and filtering.
    */
-  @Property({ name: 'actor_type' })
+  @Property({ fieldName: 'actor_type', serializedName: 'actor_type' })
   actorType!: string; // user/system/admin/api
 
   /**
    * Action performed (create, update, delete, login, logout, etc.).
    * Describes what operation was executed on the resource.
    */
-  @Property()
+  @Property({ fieldName: 'action', serializedName: 'action' })
   action!: string; // create/update/delete
 
   /**
    * Type of resource that was affected (User, Role, Device, etc.).
    * Used to categorize what entity was modified or accessed.
    */
-  @Property({ name: 'resource_type' })
+  @Property({ fieldName: 'resource_type', serializedName: 'resource_type' })
   resourceType!: string; // e.g. User, Role, Device
 
   /**
    * Unique identifier of the specific resource that was affected.
    * Used to link the audit log to the specific entity that was modified.
    */
-  @Property({ name: 'resource_id' })
+  @Property({ fieldName: 'resource_id', serializedName: 'resource_id' })
   resourceId!: string;
 
   /**
@@ -90,7 +90,12 @@ export class AuditLogEntity extends BaseEntity {
    * Stored as JSON for flexible field tracking.
    * Used for change tracking and rollback capabilities.
    */
-  @Property({ name: 'old_values', type: 'json', nullable: true })
+  @Property({
+    fieldName: 'old_values',
+    serializedName: 'old_values',
+    type: 'json',
+    nullable: true,
+  })
   oldValues?: Record<string, unknown>;
 
   /**
@@ -98,41 +103,59 @@ export class AuditLogEntity extends BaseEntity {
    * Stored as JSON for flexible field tracking.
    * Used for change tracking and understanding what was modified.
    */
-  @Property({ name: 'new_values', type: 'json', nullable: true })
+  @Property({
+    fieldName: 'new_values',
+    serializedName: 'new_values',
+    type: 'json',
+    nullable: true,
+  })
   newValues?: Record<string, unknown>;
 
   /**
    * IP address of the actor who performed the action.
    * Used for security monitoring, geolocation tracking, and fraud detection.
    */
-  @Property({ name: 'ip_address', nullable: true })
+  @Property({
+    fieldName: 'ip_address',
+    serializedName: 'ip_address',
+    nullable: true,
+  })
   ipAddress?: string;
 
   /**
    * User agent string from the browser/client that performed the action.
    * Used for security monitoring and client identification.
    */
-  @Property({ name: 'user_agent', nullable: true })
+  @Property({
+    fieldName: 'user_agent',
+    serializedName: 'user_agent',
+    nullable: true,
+  })
   userAgent?: string;
 
   /**
    * Additional context data stored as JSON.
    * Flexible storage for session info, request details, error messages, etc.
    */
-  @Property({ type: 'json', nullable: true })
+  @Property({
+    fieldName: 'metadata',
+    serializedName: 'metadata',
+    type: 'json',
+    nullable: true,
+  })
   metadata?: Record<string, unknown>;
 
   /**
    * Timestamp when the action was performed.
    * Used for chronological ordering and time-based analysis.
    */
-  @Property({ name: 'performed_at' })
+  @Property({ fieldName: 'performed_at', serializedName: 'performed_at' })
   performedAt!: Date;
 
   /**
    * Timestamp when the audit log record was created.
    * Used for audit trail management and record lifecycle tracking.
    */
-  @Property({ fieldName: 'created_on' })
+  @Property({ fieldName: 'created_on', serializedName: 'created_on' })
   createdOn!: Date;
 }

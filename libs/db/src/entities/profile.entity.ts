@@ -6,6 +6,7 @@ import {
   OptionalProps,
   PrimaryKey,
   Property,
+  SerializeOptions,
 } from '@mikro-orm/core';
 import { ProfileRepository } from '../repositories/profile.repository';
 import { UserEntity } from './user.entity';
@@ -45,21 +46,29 @@ export class ProfileEntity extends BaseEntity {
    * Associated user account (one-to-one relationship).
    * Each user has exactly one profile.
    */
-  @OneToOne(() => UserEntity, { name: 'user_id' })
+  @OneToOne(() => UserEntity, { fieldName: 'user_id' })
   user!: UserEntity;
 
   /**
    * User's first/given name.
    * Used for personalization and formal communications.
    */
-  @Property({ name: 'first_name', nullable: true })
+  @Property({
+    fieldName: 'first_name',
+    serializedName: 'first-name',
+    nullable: true,
+  })
   firstName?: string;
 
   /**
    * User's last/family name.
    * Used for personalization and formal communications.
    */
-  @Property({ name: 'last_name', nullable: true })
+  @Property({
+    fieldName: 'last_name',
+    serializedName: 'last-name',
+    nullable: true,
+  })
   lastName?: string;
 
   /**
@@ -67,21 +76,34 @@ export class ProfileEntity extends BaseEntity {
    * Defaults to "کاربر تازه‌وارد" (New User in Persian) for new accounts.
    * Can be customized by the user.
    */
-  @Property({ nullable: true, default: 'کاربر تازه‌وارد' })
+  @Property({
+    fieldName: 'display_name',
+    serializedName: 'display-name',
+    nullable: true,
+    default: 'کاربر تازه‌وارد',
+  })
   displayname?: string;
 
   /**
    * URL to the user's profile picture/avatar.
    * Used for visual identification and personalization.
    */
-  @Property({ name: 'avatar_url', nullable: true })
+  @Property({
+    fieldName: 'avatar_url',
+    serializedName: 'avatar-url',
+    nullable: true,
+  })
   avatarUrl?: string;
 
   /**
    * User's biography or personal description.
    * Long text field for self-introduction and personal branding.
    */
-  @Property({ nullable: true, type: 'text' })
+  @Property({
+    nullable: true,
+    type: 'text',
+    serializer: (value: string) => (value ? value.trim() : value),
+  })
   bio?: string;
 
   /**
@@ -104,7 +126,12 @@ export class ProfileEntity extends BaseEntity {
    * Social media profile links (Twitter, LinkedIn, Instagram, etc.).
    * Stored as JSON object with platform names as keys and URLs as values.
    */
-  @Property({ name: 'social_links', type: 'json', nullable: true })
+  @Property({
+    fieldName: 'social_links',
+    serializedName: 'social-links',
+    type: 'json',
+    nullable: true,
+  })
   socialLinks?: Record<string, string>;
 
   /**
@@ -182,13 +209,13 @@ export class ProfileEntity extends BaseEntity {
    * Timestamp when the profile was created.
    * Automatically set on entity creation.
    */
-  @Property({ name: 'created_at', onCreate: () => new Date() })
+  @Property({ fieldName: 'created_at', onCreate: () => new Date() })
   createdAt: Date = new Date();
 
   /**
    * Timestamp when the profile was last updated.
    * Automatically updated on any entity modification.
    */
-  @Property({ name: 'updated_at', onUpdate: () => new Date() })
+  @Property({ fieldName: 'updated_at', onUpdate: () => new Date() })
   updatedAt: Date = new Date();
 }

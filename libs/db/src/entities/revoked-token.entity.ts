@@ -45,7 +45,7 @@ export class RevokedTokenEntity extends BaseEntity {
    * Associated user account that owned the revoked token.
    * Many-to-one relationship - one user can have multiple revoked tokens.
    */
-  @ManyToOne({ name: 'user_id' })
+  @ManyToOne({ fieldName: 'user_id' })
   user!: UserEntity;
 
   /**
@@ -53,7 +53,7 @@ export class RevokedTokenEntity extends BaseEntity {
    * Never store plain text tokens - only hashed values for blacklisting.
    * Used to check if a token has been revoked during validation.
    */
-  @Property({ name: 'token_hash' })
+  @Property({ fieldName: 'token_hash', serializedName: 'token_hash' })
   @Unique()
   tokenHash!: string;
 
@@ -62,7 +62,7 @@ export class RevokedTokenEntity extends BaseEntity {
    * Determines the token's purpose and validation rules.
    * Used for token lifecycle management and security policies.
    */
-  @Property({ name: 'token_type' })
+  @Property({ fieldName: 'token_type', serializedName: 'token_type' })
   tokenType!: string; // access / refresh / api / reset
 
   /**
@@ -78,14 +78,22 @@ export class RevokedTokenEntity extends BaseEntity {
    * User agent string from the client that used the token.
    * Used for security monitoring and audit trail.
    */
-  @Property({ name: 'user_agent', nullable: true })
+  @Property({
+    fieldName: 'user_agent',
+    serializedName: 'user_agent',
+    nullable: true,
+  })
   userAgent?: string;
 
   /**
    * IP address of the client that used the token.
    * Used for security monitoring, geolocation tracking, and fraud detection.
    */
-  @Property({ name: 'ip_address', nullable: true })
+  @Property({
+    fieldName: 'ip_address',
+    serializedName: 'ip_address',
+    nullable: true,
+  })
   ipAddress?: string;
 
   /**
@@ -100,14 +108,14 @@ export class RevokedTokenEntity extends BaseEntity {
    * Timestamp when the token would have naturally expired.
    * Used for token lifecycle analysis and security assessments.
    */
-  @Property({ name: 'expires_at' })
+  @Property({ fieldName: 'expires_at', serializedName: 'expires_at' })
   expiresAt!: Date;
 
   /**
    * Timestamp when the token was revoked.
    * Used for security incident tracking and audit trails.
    */
-  @Property({ name: 'revoked_at' })
+  @Property({ fieldName: 'revoked_at', serializedName: 'revoked_at' })
   revokedAt!: Date;
 
   /**

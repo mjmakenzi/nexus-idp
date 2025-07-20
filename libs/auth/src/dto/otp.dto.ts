@@ -1,4 +1,4 @@
-import { OtpPurpose } from '@app/auth';
+import { OtpPurpose } from '@app/db';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class SendOtpPhoneDto {

@@ -1,5 +1,24 @@
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
+export class LoginPhoneDto {
+  @IsString()
+  @IsNotEmpty()
+  country_code!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  phone_no!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  otp!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  arcaptcha_token?: string;
+}
+
 export class GoogleLoginDto {
   @IsString()
   @IsNotEmpty()

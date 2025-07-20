@@ -13,6 +13,7 @@ import {
 } from '@app/shared-utils';
 import { combinedValidationSchema } from '@app/shared-utils';
 import { LoggerModule } from '@app/shared-utils';
+import { UserModule } from '@app/user';
 import { resolve } from 'path';
 import { apiConfig } from './api.config';
 import { ApiController } from './api.controller';
@@ -38,6 +39,7 @@ import { apiSchema } from './api.schema';
     LoggerModule,
     DbModule,
     AuthModule,
+    UserModule,
   ],
   controllers: [ApiController],
 })

@@ -44,7 +44,7 @@ export class RoleEntity extends BaseEntity {
    * Human-readable name for the role (e.g., "Administrator", "User", "Moderator").
    * Used for display purposes and user interface.
    */
-  @Property()
+  @Property({ fieldName: 'name', serializedName: 'name' })
   name!: string;
 
   /**
@@ -52,7 +52,7 @@ export class RoleEntity extends BaseEntity {
    * Used for programmatic role checks and API operations.
    * Must be unique across all roles.
    */
-  @Property()
+  @Property({ fieldName: 'code', serializedName: 'code' })
   @Unique()
   code!: string;
 
@@ -60,7 +60,11 @@ export class RoleEntity extends BaseEntity {
    * Detailed description of the role's purpose and responsibilities.
    * Used for role management and documentation.
    */
-  @Property({ nullable: true })
+  @Property({
+    fieldName: 'description',
+    serializedName: 'description',
+    nullable: true,
+  })
   description?: string;
 
   /**
@@ -68,7 +72,11 @@ export class RoleEntity extends BaseEntity {
    * Stored as JSON for flexible permission management.
    * Examples: ["user:read", "user:write", "admin:all"]
    */
-  @Property({ type: 'json' })
+  @Property({
+    fieldName: 'permissions',
+    serializedName: 'permissions',
+    type: 'json',
+  })
   permissions!: string[];
 
   /**
@@ -76,7 +84,11 @@ export class RoleEntity extends BaseEntity {
    * Default roles are automatically assigned during user registration.
    * Used for standard user onboarding and role management.
    */
-  @Property({ name: 'is_default', default: false })
+  @Property({
+    fieldName: 'is_default',
+    serializedName: 'is_default',
+    default: false,
+  })
   isDefault: boolean = false;
 
   /**
@@ -84,21 +96,33 @@ export class RoleEntity extends BaseEntity {
    * System roles are essential for system operation and security.
    * Used to protect critical roles from accidental modification.
    */
-  @Property({ name: 'is_system', default: false })
+  @Property({
+    fieldName: 'is_system',
+    serializedName: 'is_system',
+    default: false,
+  })
   isSystem: boolean = false;
 
   /**
    * Timestamp when the role was created.
    * Automatically set on entity creation.
    */
-  @Property({ name: 'created_at', onCreate: () => new Date() })
+  @Property({
+    fieldName: 'created_at',
+    serializedName: 'created_at',
+    onCreate: () => new Date(),
+  })
   createdAt: Date = new Date();
 
   /**
    * Timestamp when the role was last updated.
    * Automatically updated on any entity modification.
    */
-  @Property({ name: 'updated_at', onUpdate: () => new Date() })
+  @Property({
+    fieldName: 'updated_at',
+    serializedName: 'updated_at',
+    onUpdate: () => new Date(),
+  })
   updatedAt: Date = new Date();
 
   // ========================================

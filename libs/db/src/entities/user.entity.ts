@@ -3,6 +3,7 @@ import {
   Collection,
   Entity,
   EntityRepositoryType,
+  Enum,
   OneToMany,
   OneToOne,
   OptionalProps,
@@ -18,6 +19,12 @@ import { ProfileEntity } from './profile.entity';
 import { SecurityEventEntity } from './security-event.entity';
 import { SessionEntity } from './session.entity';
 import { UserRoleEntity } from './user-role.entity';
+
+export enum UserStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  PENDING = 'pending',
+}
 
 /**
  * User entity representing a user account in the identity provider system.
@@ -67,7 +74,7 @@ export class UserEntity extends BaseEntity {
    * Unique username for login and display purposes.
    * Must be unique across all users in the system.
    */
-  @Property()
+  @Property({ fieldName: 'username', serializedName: 'username' })
   @Unique()
   username!: string;
 
@@ -76,30 +83,41 @@ export class UserEntity extends BaseEntity {
    * Used for login, notifications, and account recovery.
    * Must be unique across all users.
    */
-  @Property()
+  @Property({ fieldName: 'email', serializedName: 'email' })
   @Unique()
-  email!: string;
+  email?: string;
 
   /**
    * Normalized email address (lowercase, trimmed) for consistent lookups.
    * Used for case-insensitive email searches and comparisons.
    */
-  @Property({ name: 'email_normalized' })
+  @Property({
+    fieldName: 'email_normalized',
+    serializedName: 'email_normalized',
+  })
   @Unique()
-  emailNormalized!: string;
+  emailNormalized?: string;
 
   /**
    * Phone number for SMS-based authentication and notifications.
    * Optional - not all users provide phone numbers.
    */
-  @Property({ name: 'phone_number', nullable: true })
+  @Property({
+    fieldName: 'phone_number',
+    serializedName: 'phone_number',
+    nullable: true,
+  })
   phoneNumber?: string;
 
   /**
    * Country code for international phone number formatting.
    * Used with phoneNumber for SMS operations.
    */
-  @Property({ name: 'country_code', nullable: true })
+  @Property({
+    fieldName: 'country_code',
+    serializedName: 'country_code',
+    nullable: true,
+  })
   countryCode?: string;
 
   /**
@@ -114,21 +132,25 @@ export class UserEntity extends BaseEntity {
    * Bcrypt-hashed password for local authentication.
    * Null for users who only authenticate via OAuth/SSO.
    */
-  @Property({ name: 'password_hash', nullable: true })
-  passwordHash?: string;
+  @Property({ fieldName: 'password_hash', serializedName: 'password_hash' })
+  passwordHash!: string;
 
   /**
    * Salt used for password hashing to prevent rainbow table attacks.
    * Generated uniquely for each password.
    */
-  @Property({ name: 'password_salt', nullable: true })
-  passwordSalt?: string;
+  @Property({ fieldName: 'password_salt', serializedName: 'password_salt' })
+  passwordSalt!: string;
 
   /**
    * Timestamp when the password was last changed.
    * Used for password expiration policies and security audits.
    */
-  @Property({ name: 'password_changed_at', nullable: true })
+  @Property({
+    fieldName: 'password_changed_at',
+    serializedName: 'password_changed_at',
+    nullable: true,
+  })
   passwordChangedAt?: Date;
 
   /**
@@ -159,14 +181,22 @@ export class UserEntity extends BaseEntity {
    * Timestamp when email address was verified.
    * Required for certain account operations and security features.
    */
-  @Property({ name: 'email_verified_at', nullable: true })
+  @Property({
+    fieldName: 'email_verified_at',
+    serializedName: 'email_verified_at',
+    nullable: true,
+  })
   emailVerifiedAt?: Date;
 
   /**
    * Timestamp when phone number was verified via SMS.
    * Required for SMS-based authentication and notifications.
    */
-  @Property({ name: 'phone_verified_at', nullable: true })
+  @Property({
+    fieldName: 'phone_verified_at',
+    serializedName: 'phone_verified_at',
+    nullable: true,
+  })
   phoneVerifiedAt?: Date;
 
   /**
@@ -197,36 +227,52 @@ export class UserEntity extends BaseEntity {
    * Counter for consecutive failed login attempts.
    * Used to implement account lockout policies.
    */
-  @Property({ name: 'failed_login_attempts', default: 0 })
+  @Property({
+    fieldName: 'failed_login_attempts',
+    serializedName: 'failed_login_attempts',
+    default: 0,
+  })
   failedLoginAttempts: number = 0;
 
   /**
    * Timestamp until which the account is locked due to security violations.
    * Null when account is not locked.
    */
-  @Property({ name: 'locked_until', nullable: true })
+  @Property({
+    fieldName: 'locked_until',
+    serializedName: 'locked_until',
+    nullable: true,
+  })
   lockedUntil?: Date;
 
   /**
    * Timestamp of the last successful login.
    * Used for activity tracking and security monitoring.
    */
-  @Property({ name: 'last_login_at', nullable: true })
+  @Property({
+    fieldName: 'last_login_at',
+    serializedName: 'last_login_at',
+    nullable: true,
+  })
   lastLoginAt?: Date;
 
   /**
    * IP address of the last successful login.
    * Used for security monitoring and fraud detection.
    */
-  @Property({ name: 'last_login_ip', nullable: true })
+  @Property({
+    fieldName: 'last_login_ip',
+    serializedName: 'last_login_ip',
+    nullable: true,
+  })
   lastLoginIp?: string;
 
   /**
    * Current account status (active, suspended, pending, etc.).
    * Controls whether the user can access the system.
    */
-  @Property()
-  status!: string;
+  @Enum(() => UserStatus)
+  status: UserStatus = UserStatus.ACTIVE;
 
   /**
    * Timestamp when user accepted the Terms of Service.
@@ -256,21 +302,33 @@ export class UserEntity extends BaseEntity {
    * Timestamp when the user account was created.
    * Automatically set on entity creation.
    */
-  @Property({ name: 'created_at', onCreate: () => new Date() })
-  createdAt: Date = new Date();
+  @Property({
+    fieldName: 'created_at',
+    serializedName: 'created_at',
+    onCreate: () => new Date(),
+  })
+  createdAt?: Date;
 
   /**
    * Timestamp when the user account was last updated.
    * Automatically updated on any entity modification.
    */
-  @Property({ name: 'updated_at', onUpdate: () => new Date() })
-  updatedAt: Date = new Date();
+  @Property({
+    fieldName: 'updated_at',
+    serializedName: 'updated_at',
+    onUpdate: () => new Date(),
+  })
+  updatedAt?: Date;
 
   /**
    * Soft delete timestamp for account deactivation.
    * Null for active accounts, set to deletion date for deactivated accounts.
    */
-  @Property({ name: 'deleted_at', nullable: true })
+  @Property({
+    fieldName: 'deleted_at',
+    serializedName: 'deleted_at',
+    nullable: true,
+  })
   deletedAt?: Date;
 
   /**

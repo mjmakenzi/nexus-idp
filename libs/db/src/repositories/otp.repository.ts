@@ -1,11 +1,11 @@
-import { SendOtpPhoneDto } from '@app/auth';
-import { EntityRepository } from '@mikro-orm/core';
-// import { UserEntity } from '../../../user/src/entities/user.entity';
+import { OneClickPhoneDto, SendOtpPhoneDto } from '@app/auth';
+import { EntityRepository } from '@mikro-orm/postgresql';
 import {
   OtpDeliveryMethod,
   OtpEntity,
   OtpIdentifier,
 } from '../entities/otp.entity';
+import { UserEntity } from '../entities/user.entity';
 
 export class OtpRepository extends EntityRepository<OtpEntity> {
   async createOtp(
@@ -13,9 +13,10 @@ export class OtpRepository extends EntityRepository<OtpEntity> {
     userAgent: string,
     ip: string,
     otp: string,
-    userId?: number,
+    user?: UserEntity | null,
   ): Promise<OtpEntity> {
-    return await this.create({
+    const otpEntity = await this.create({
+      user,
       identifier: OtpIdentifier.PHONE,
       otpHash: otp,
       purpose: dto.type,
@@ -24,7 +25,11 @@ export class OtpRepository extends EntityRepository<OtpEntity> {
       ipAddress: ip,
       expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
     });
+
+    await this.em.persistAndFlush(otpEntity);
+    return otpEntity;
   }
+
   // async createEmailOtp(
   //   dto: SendOptEmailDto,
   //   userAgent: string,
@@ -48,13 +53,12 @@ export class OtpRepository extends EntityRepository<OtpEntity> {
   //     isUsed: false,
   //   });
   // }
-  // async deleteOtp(dto: OneClickPhoneDto) {
-  //   return await this.nativeDelete({
-  //     identifier: dto.phone_no,
-  //     otpHash: dto.otp,
-  //     purpose: 'login',
-  //   });
-  // }
+  async deleteOtp(dto: OneClickPhoneDto) {
+    return await this.nativeDelete({
+      identifier: OtpIdentifier.PHONE,
+      otpHash: dto.otp,
+    });
+  }
   // async deleteEmailOtp(dto: OneClickEmailDto) {
   //   return await this.nativeDelete({
   //     identifier: dto.email,
@@ -62,20 +66,31 @@ export class OtpRepository extends EntityRepository<OtpEntity> {
   //     purpose: 'login',
   //   });
   // }
-  // async getOtp(
-  //   dto: OneClickPhoneDto | SendOtpPhoneDto,
-  // ): Promise<OtpEntity | null> {
-  //   const validOtp = await this.findOne(
-  //     {
-  //       identifier: dto.phone_no,
-  //       ...('otp' in dto && { otpHash: dto.otp }),
-  //       purpose: 'login',
-  //       expiresAt: { $gt: new Date() },
-  //     },
-  //     { orderBy: { createdAt: 'DESC' } },
-  //   );
-  //   return validOtp;
-  // }
+  async getOtp(
+    dto: OneClickPhoneDto | SendOtpPhoneDto,
+  ): Promise<OtpEntity | null> {
+    const validOtp = await this.findOne(
+      {
+        identifier: OtpIdentifier.PHONE,
+        otpHash: 'otp' in dto ? dto.otp : undefined,
+        expiresAt: { $gt: new Date() },
+      },
+      { orderBy: { createdAt: 'DESC' } },
+    );
+    return validOtp;
+  }
+
+  async getRecentOtp(dto: SendOtpPhoneDto): Promise<OtpEntity | null> {
+    const fourMinutesFromNow = new Date(Date.now() + 4 * 60 * 1000);
+    return await this.findOne(
+      {
+        identifier: OtpIdentifier.PHONE,
+        purpose: dto.type,
+        expiresAt: { $gt: fourMinutesFromNow },
+      },
+      { orderBy: { createdAt: 'DESC' } },
+    );
+  }
   // async getEmailOtp(
   //   dto: OneClickEmailDto | SendOptEmailDto,
   // ): Promise<OtpEntity | null> {

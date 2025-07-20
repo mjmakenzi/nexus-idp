@@ -63,7 +63,7 @@ export class ApiKeyEntity extends BaseEntity {
    * Used for key identification and management without exposing the actual key.
    * Must be unique across all API keys.
    */
-  @Property({ name: 'key_id' })
+  @Property({ fieldName: 'key_id', serializedName: 'key_id' })
   @Unique()
   keyId!: string;
 
@@ -72,7 +72,7 @@ export class ApiKeyEntity extends BaseEntity {
    * Never store plain text API keys - only hashed values.
    * Used for key validation during API requests.
    */
-  @Property({ name: 'key_hash' })
+  @Property({ fieldName: 'key_hash', serializedName: 'key_hash' })
   keyHash!: string;
 
   /**
@@ -80,7 +80,7 @@ export class ApiKeyEntity extends BaseEntity {
    * Used to identify the key type and owner without exposing the full key.
    * Example: "ak_live_", "ak_test_"
    */
-  @Property({ name: 'key_prefix' })
+  @Property({ fieldName: 'key_prefix', serializedName: 'key_prefix' })
   keyPrefix!: string;
 
   /**
@@ -88,7 +88,12 @@ export class ApiKeyEntity extends BaseEntity {
    * Stored as JSON for flexible permission management.
    * Examples: ["user:read", "user:write", "admin:all"]
    */
-  @Property({ name: 'allowed_permissions', type: 'json', nullable: true })
+  @Property({
+    fieldName: 'allowed_permissions',
+    serializedName: 'allowed_permissions',
+    type: 'json',
+    nullable: true,
+  })
   allowedPermissions?: string[];
 
   /**
@@ -96,7 +101,12 @@ export class ApiKeyEntity extends BaseEntity {
    * Stored as JSON for IP-based access control.
    * Used for restricting API key usage to specific networks.
    */
-  @Property({ name: 'allowed_ips', type: 'json', nullable: true })
+  @Property({
+    fieldName: 'allowed_ips',
+    serializedName: 'allowed_ips',
+    type: 'json',
+    nullable: true,
+  })
   allowedIps?: string[];
 
   /**
@@ -104,21 +114,34 @@ export class ApiKeyEntity extends BaseEntity {
    * Stored as JSON for flexible rate limit settings.
    * Examples: {"requests_per_minute": 100, "burst_limit": 10}
    */
-  @Property({ name: 'rate_limits', type: 'json', nullable: true })
+  @Property({
+    fieldName: 'rate_limits',
+    serializedName: 'rate_limits',
+    type: 'json',
+    nullable: true,
+  })
   rateLimits?: Record<string, unknown>;
 
   /**
    * Timestamp when this API key was last used.
    * Used for usage tracking and cleanup of inactive keys.
    */
-  @Property({ name: 'last_used_at', nullable: true })
+  @Property({
+    fieldName: 'last_used_at',
+    serializedName: 'last_used_at',
+    nullable: true,
+  })
   lastUsedAt?: Date;
 
   /**
    * IP address of the last request using this API key.
    * Used for security monitoring and usage tracking.
    */
-  @Property({ name: 'last_used_ip', nullable: true })
+  @Property({
+    fieldName: 'last_used_ip',
+    serializedName: 'last_used_ip',
+    nullable: true,
+  })
   lastUsedIp?: string;
 
   /**
@@ -126,7 +149,11 @@ export class ApiKeyEntity extends BaseEntity {
    * Used for key lifecycle management and automatic expiration.
    * Null for keys that never expire.
    */
-  @Property({ name: 'expires_at', nullable: true })
+  @Property({
+    fieldName: 'expires_at',
+    serializedName: 'expires_at',
+    nullable: true,
+  })
   expiresAt?: Date;
 
   /**
@@ -134,20 +161,32 @@ export class ApiKeyEntity extends BaseEntity {
    * Used for key management and temporary deactivation.
    * Defaults to true for new keys.
    */
-  @Property({ name: 'is_active', default: true })
+  @Property({
+    fieldName: 'is_active',
+    serializedName: 'is_active',
+    default: true,
+  })
   isActive: boolean = true;
 
   /**
    * Timestamp when the API key was created.
    * Automatically set on entity creation.
    */
-  @Property({ name: 'created_at', onCreate: () => new Date() })
+  @Property({
+    fieldName: 'created_at',
+    serializedName: 'created_at',
+    onCreate: () => new Date(),
+  })
   createdAt: Date = new Date();
 
   /**
    * Identifier of who created the API key (user ID, admin ID).
    * Used for accountability and audit trail in key management.
    */
-  @Property({ name: 'created_by', nullable: true })
+  @Property({
+    fieldName: 'created_by',
+    serializedName: 'created_by',
+    nullable: true,
+  })
   createdBy?: string;
 }

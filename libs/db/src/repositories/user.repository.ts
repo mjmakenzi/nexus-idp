@@ -1,7 +1,77 @@
+import { OneClickPhoneDto, SendOtpPhoneDto } from '@app/auth';
 import { EntityRepository } from '@mikro-orm/postgresql';
 import { UserEntity } from '../entities/user.entity';
 
 export class UserRepository extends EntityRepository<UserEntity> {
+  /**
+   * Get user by ID
+   */
+  async getUserById(id: number): Promise<UserEntity | null> {
+    return await this.findOne({ id });
+  }
+
+  /**
+   * Get user by email
+   */
+  async getUserByEmail(email: string): Promise<UserEntity | null> {
+    return await this.findOne({ email });
+  }
+
+  /**
+   * Get user by username
+   */
+  async getUserByUsername(username: string): Promise<UserEntity | null> {
+    return await this.findOne({ username });
+  }
+
+  /**
+   * Get user by phone number
+   */
+  async getUserByPhone(
+    dto: OneClickPhoneDto | SendOtpPhoneDto,
+  ): Promise<UserEntity | null> {
+    return await this.findOne({
+      countryCode: dto.country_code,
+      phoneNumber: dto.phone_no,
+    });
+  }
+
+  /**
+   * Create a new user
+   */
+  async createUser(
+    dto: OneClickPhoneDto,
+    username: string,
+    passwordHash: string,
+    passwordSalt: string,
+  ): Promise<UserEntity> {
+    const user = this.create({
+      username,
+      passwordHash,
+      passwordSalt,
+      countryCode: dto.country_code,
+      phoneNumber: dto.phone_no,
+      phoneVerifiedAt: new Date(),
+    });
+    await this.em.persistAndFlush(user);
+    return user;
+  }
+
+  /**
+   * Update user
+   */
+  async updateUser(
+    id: number,
+    userData: Partial<UserEntity>,
+  ): Promise<UserEntity | null> {
+    const user = await this.findOne({ id });
+    if (!user) return null;
+
+    this.assign(user, userData);
+    await this.em.flush();
+    return user;
+  }
+
   // async createPhoneUser(
   //   dto: any,
   //   username: string,

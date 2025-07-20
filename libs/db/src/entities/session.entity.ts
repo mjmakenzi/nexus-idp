@@ -63,7 +63,7 @@ export class SessionEntity extends BaseEntity {
    * Required relationship - every session must belong to a user
    * Used for user authentication and session management
    */
-  @ManyToOne(() => UserEntity)
+  @ManyToOne(() => UserEntity, { fieldName: 'user_id' })
   user!: UserEntity;
 
   /**
@@ -91,7 +91,12 @@ export class SessionEntity extends BaseEntity {
    * Nullable because some sessions may not use access tokens
    * Used for token validation and session security verification
    */
-  @Property({ name: 'access_token_hash', type: 'text', nullable: true })
+  @Property({
+    fieldName: 'access_token_hash',
+    serializedName: 'access_token_hash',
+    type: 'text',
+    nullable: true,
+  })
   accessTokenHash?: string;
 
   /**
@@ -100,7 +105,12 @@ export class SessionEntity extends BaseEntity {
    * Nullable because some sessions may not use refresh tokens
    * Used for token refresh operations and session renewal
    */
-  @Property({ name: 'refresh_token_hash', type: 'text', nullable: true })
+  @Property({
+    fieldName: 'refresh_token_hash',
+    serializedName: 'refresh_token_hash',
+    type: 'text',
+    nullable: true,
+  })
   refreshTokenHash?: string;
 
   /**
@@ -120,7 +130,11 @@ export class SessionEntity extends BaseEntity {
    * Nullable because some clients may not provide user agent
    * Used for session fingerprinting and suspicious activity detection
    */
-  @Property({ name: 'user_agent', nullable: true })
+  @Property({
+    fieldName: 'user_agent',
+    serializedName: 'user_agent',
+    nullable: true,
+  })
   userAgent?: string;
 
   /**
@@ -129,7 +143,11 @@ export class SessionEntity extends BaseEntity {
    * Nullable because IP may not be available in all contexts
    * Used for geolocation tracking and security policy enforcement
    */
-  @Property({ name: 'ip_address', nullable: true })
+  @Property({
+    fieldName: 'ip_address',
+    serializedName: 'ip_address',
+    nullable: true,
+  })
   ipAddress?: string;
 
   /**
@@ -148,7 +166,11 @@ export class SessionEntity extends BaseEntity {
    * Automatically set when entity is created
    * Used for session age tracking and cleanup operations
    */
-  @Property({ name: 'created_at', onCreate: () => new Date() })
+  @Property({
+    fieldName: 'created_at',
+    serializedName: 'created_at',
+    onCreate: () => new Date(),
+  })
   createdAt: Date = new Date();
 
   /**
@@ -157,7 +179,10 @@ export class SessionEntity extends BaseEntity {
    * Used for session timeout calculations and activity monitoring
    * Required field - sessions must track activity for security
    */
-  @Property({ name: 'last_activity_at' })
+  @Property({
+    fieldName: 'last_activity_at',
+    serializedName: 'last_activity_at',
+  })
   lastActivityAt!: Date;
 
   /**
@@ -166,7 +191,7 @@ export class SessionEntity extends BaseEntity {
    * Used for automatic session cleanup and expiration enforcement
    * Required field - all sessions must have an expiration time
    */
-  @Property({ name: 'expires_at' })
+  @Property({ fieldName: 'expires_at', serializedName: 'expires_at' })
   expiresAt!: Date;
 
   /**
@@ -175,7 +200,11 @@ export class SessionEntity extends BaseEntity {
    * Nullable because active sessions don't have termination time
    * Used for session history and audit trail maintenance
    */
-  @Property({ name: 'terminated_at', nullable: true })
+  @Property({
+    fieldName: 'terminated_at',
+    serializedName: 'terminated_at',
+    nullable: true,
+  })
   terminatedAt?: Date;
 
   /**

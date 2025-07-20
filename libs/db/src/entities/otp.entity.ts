@@ -75,13 +75,13 @@ export class OtpEntity extends BaseEntity {
    */
   @Property()
   @Enum(() => OtpIdentifier)
-  identifier!: OtpIdentifier; // email or phone
+  identifier: OtpIdentifier = OtpIdentifier.PHONE; // email or phone
 
   /**
    * Hashed OTP code for security (never store plain text OTPs).
    * Generated using cryptographically secure methods.
    */
-  @Property({ name: 'otp_hash' })
+  @Property({ fieldName: 'otp_hash', serializedName: 'otp_hash' })
   otpHash!: string;
 
   /**
@@ -89,15 +89,15 @@ export class OtpEntity extends BaseEntity {
    * Determines the validation rules and post-verification actions.
    */
   @Enum(() => OtpPurpose)
-  purpose!: OtpPurpose; // Enum string: login, register, etc.
+  purpose: OtpPurpose = OtpPurpose.LOGIN; // Enum string: login, register, etc.
 
   /**
    * Method used to deliver the OTP (email, sms, voice, app).
    * Determines the delivery mechanism and rate limiting rules.
    */
-  @Property({ name: 'delivery_method' })
+  @Property({ fieldName: 'delivery_method', serializedName: 'delivery_method' })
   @Enum(() => OtpDeliveryMethod)
-  deliveryMethod!: OtpDeliveryMethod; // e.g., email, sms, voice, app
+  deliveryMethod: OtpDeliveryMethod = OtpDeliveryMethod.SMS; // e.g., email, sms, voice, app
 
   /**
    * Step number in multi-step authentication flows.
@@ -105,7 +105,11 @@ export class OtpEntity extends BaseEntity {
    * Used for complex authentication sequences.
 
    */
-  @Property({ name: 'step_number', default: 1 })
+  @Property({
+    fieldName: 'step_number',
+    serializedName: 'step_number',
+    default: 1,
+  })
   stepNumber: number = 1;
 
   /**
@@ -136,35 +140,51 @@ export class OtpEntity extends BaseEntity {
    * User agent string from the browser/client that requested the OTP.
    * Used for security monitoring and fraud detection.
    */
-  @Property({ name: 'user_agent', nullable: true })
+  @Property({
+    fieldName: 'user_agent',
+    serializedName: 'user_agent',
+    nullable: true,
+  })
   userAgent?: string;
 
   /**
    * IP address of the client that requested the OTP.
    * Used for security monitoring, rate limiting, and fraud detection.
    */
-  @Property({ name: 'ip_address', nullable: true })
+  @Property({
+    fieldName: 'ip_address',
+    serializedName: 'ip_address',
+    nullable: true,
+  })
   ipAddress?: string;
 
   /**
    * Timestamp when the OTP was created.
    * Automatically set on entity creation.
    */
-  @Property({ name: 'created_at', onCreate: () => new Date() })
+  @Property({
+    fieldName: 'created_at',
+    serializedName: 'created_at',
+    onCreate: () => new Date(),
+  })
   createdAt: Date = new Date();
 
   /**
    * Timestamp when the OTP expires and becomes invalid.
    * OTPs typically expire after 5-15 minutes for security.
    */
-  @Property({ name: 'expires_at' })
+  @Property({ fieldName: 'expires_at', serializedName: 'expires_at' })
   expiresAt!: Date;
 
   /**
    * Timestamp when the OTP was successfully verified.
    * Null until the OTP is verified by the user.
    */
-  @Property({ name: 'verified_at', nullable: true })
+  @Property({
+    fieldName: 'verified_at',
+    serializedName: 'verified_at',
+    nullable: true,
+  })
   verifiedAt?: Date;
 
   /**

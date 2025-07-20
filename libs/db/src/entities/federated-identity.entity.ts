@@ -65,21 +65,32 @@ export class FederatedIdentityEntity extends BaseEntity {
    * Used to link the local user account with the provider's user account.
    * Must be unique per provider.
    */
-  @Property({ name: 'provider_user_id' })
+  @Property({
+    fieldName: 'provider_user_id',
+    serializedName: 'provider_user_id',
+  })
   providerUserId!: string;
 
   /**
    * Username from the OAuth provider (if available).
    * Used for display purposes and user identification.
    */
-  @Property({ name: 'provider_username', nullable: true })
+  @Property({
+    fieldName: 'provider_username',
+    serializedName: 'provider_username',
+    nullable: true,
+  })
   providerUsername?: string;
 
   /**
    * Email address from the OAuth provider (if available).
    * Used for account linking verification and user identification.
    */
-  @Property({ name: 'provider_email', nullable: true })
+  @Property({
+    fieldName: 'provider_email',
+    serializedName: 'provider_email',
+    nullable: true,
+  })
   providerEmail?: string;
 
   /**
@@ -87,7 +98,12 @@ export class FederatedIdentityEntity extends BaseEntity {
    * Flexible storage for profile info, preferences, and provider-specific data.
    * Examples: profile picture, name, locale, timezone, etc.
    */
-  @Property({ name: 'provider_data', type: 'json', nullable: true })
+  @Property({
+    fieldName: 'provider_data',
+    serializedName: 'provider_data',
+    type: 'json',
+    nullable: true,
+  })
   providerData?: Record<string, unknown>;
 
   /**
@@ -95,7 +111,11 @@ export class FederatedIdentityEntity extends BaseEntity {
    * Never store plain text tokens - only hashed values for security.
    * Used for API calls to the provider on behalf of the user.
    */
-  @Property({ name: 'access_token_hash', nullable: true })
+  @Property({
+    fieldName: 'access_token_hash',
+    serializedName: 'access_token_hash',
+    nullable: true,
+  })
   accessTokenHash?: string;
 
   /**
@@ -103,14 +123,22 @@ export class FederatedIdentityEntity extends BaseEntity {
    * Never store plain text tokens - only hashed values for security.
    * Used to obtain new access tokens when they expire.
    */
-  @Property({ name: 'refresh_token_hash', nullable: true })
+  @Property({
+    fieldName: 'refresh_token_hash',
+    serializedName: 'refresh_token_hash',
+    nullable: true,
+  })
   refreshTokenHash?: string;
 
   /**
    * Timestamp when the access token expires.
    * Used for token lifecycle management and automatic refresh.
    */
-  @Property({ name: 'token_expires_at', nullable: true })
+  @Property({
+    fieldName: 'token_expires_at',
+    serializedName: 'token_expires_at',
+    nullable: true,
+  })
   tokenExpiresAt?: Date;
 
   /**
@@ -118,34 +146,50 @@ export class FederatedIdentityEntity extends BaseEntity {
    * Primary identities are used for default authentication and display.
    * Only one identity per user can be primary.
    */
-  @Property({ name: 'is_primary', default: false })
+  @Property({
+    fieldName: 'is_primary',
+    serializedName: 'is_primary',
+    default: false,
+  })
   isPrimary: boolean = false;
 
   /**
    * Timestamp when this federated identity was linked to the user account.
    * Used for account linking audit trail and relationship tracking.
    */
-  @Property({ name: 'linked_at' })
+  @Property({ fieldName: 'linked_at', serializedName: 'linked_at' })
   linkedAt!: Date;
 
   /**
    * Timestamp when this federated identity was last used for authentication.
    * Used for activity tracking and cleanup of unused identities.
    */
-  @Property({ name: 'last_used_at', nullable: true })
+  @Property({
+    fieldName: 'last_used_at',
+    serializedName: 'last_used_at',
+    nullable: true,
+  })
   lastUsedAt?: Date;
 
   /**
    * Timestamp when the federated identity record was created.
    * Automatically set on entity creation.
    */
-  @Property({ name: 'created_at', onCreate: () => new Date() })
+  @Property({
+    fieldName: 'created_at',
+    serializedName: 'created_at',
+    onCreate: () => new Date(),
+  })
   createdAt: Date = new Date();
 
   /**
    * Timestamp when the federated identity record was last updated.
    * Automatically updated on any entity modification.
    */
-  @Property({ name: 'updated_at', onUpdate: () => new Date() })
+  @Property({
+    fieldName: 'updated_at',
+    serializedName: 'updated_at',
+    onUpdate: () => new Date(),
+  })
   updatedAt: Date = new Date();
 }

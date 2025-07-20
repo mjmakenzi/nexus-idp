@@ -1,35 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import {
-  OneClickEmailDto,
-  OneClickPhoneDto,
-  SendOptEmailDto,
-  SendOtpPhoneDto,
-} from '@app/auth';
-import { ProfileRepository, UserRepository } from '@app/db';
-import {
-  CommonService,
-  DiscourseService,
-  JwtService,
-  KavenegarService,
-  NodemailerService,
-} from '@app/shared-utils';
-import { EntityManager } from '@mikro-orm/postgresql';
+import { SendOtpPhoneDto } from '@app/auth';
+import { OtpRepository, UserRepository } from '@app/db';
+import { CommonService, KavenegarService } from '@app/shared-utils';
 import { FastifyRequest } from 'fastify';
-
-// import { OtpRepository } from '../../repository/otp.repository';
 
 @Injectable()
 export class OtpService {
   constructor(
     private readonly userRepo: UserRepository,
-    // private readonly otpRepo: OtpRepository,
-    private readonly profileRepo: ProfileRepository,
-    private readonly em: EntityManager,
+    private readonly otpRepo: OtpRepository,
     private readonly kavenegarService: KavenegarService,
-    private readonly commonService: CommonService,
-    private readonly jwtService: JwtService,
-    private readonly discourseService: DiscourseService,
-    private readonly nodemailerService: NodemailerService,
   ) {}
 
   async sendOtpPhone(
@@ -37,19 +17,17 @@ export class OtpService {
     dto: SendOtpPhoneDto,
   ): Promise<{ status: string; message: string }> {
     // 1. Find user by phone
-    // const user = await this.userRepo.getUserByPhone(dto);
-    const user = null;
+    const user = await this.userRepo.getUserByPhone(dto);
 
     // 2. Check for recent OTP (limit)
-
-    // const validOtp = await this.otpRepo.getOtp(dto);
-    // if (validOtp) {
-    //   return { status: 'error', message: 'otp_limit' };
-    // }
+    const validOtp = await this.otpRepo.getRecentOtp(dto);
+    if (validOtp) {
+      return { status: 'error', message: 'otp_limit' };
+    }
 
     // 3. Delete expired OTPs (older than 1 day)
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    // await this.otpRepo.nativeDelete({ expiresAt: { $lte: yesterday } });
+    await this.otpRepo.nativeDelete({ expiresAt: { $lte: yesterday } });
 
     // 4. Generate OTP
     const otp = Math.floor(10000 + Math.random() * 90000).toString();
@@ -57,15 +35,7 @@ export class OtpService {
     // 5. Insert OTP
     const userAgent = CommonService.getRequesterUserAgent(req);
     const ip = CommonService.getRequesterIpAddress(req);
-    // const otpEntity = await this.otpRepo.createOtp(
-    //   dto,
-    //   userAgent,
-    //   ip,
-    //   otp,
-    //   user?.id ?? undefined,
-    // );
-
-    // await this.em.persistAndFlush(otpEntity);
+    await this.otpRepo.createOtp(dto, userAgent, ip, otp, user);
 
     // 6. Send OTP by SMS
     const smsResult = await this.kavenegarService.sendOtpBySms(
@@ -100,7 +70,7 @@ export class OtpService {
   //     const { passwordHash, passwordSalt } =
   //       await this.commonService.generateRandomPassword();
 
-  //     user = await this.userRepo.createPhoneUser(
+  //     user = await this.userRepo.createUser(
   //       dto,
   //       username,
   //       passwordHash,
@@ -111,28 +81,25 @@ export class OtpService {
   //       return { status: 'error', message: 'db_error_insert' };
   //     }
 
-  //     const profile = await this.profileRepo.createProfile(user);
-  //     await this.em.persistAndFlush(user);
-  //     await this.em.persistAndFlush(profile);
+  //     await this.profileRepo.createProfile(user);
 
   //     // Optionally: sync to Discourse, etc.
-
-  //     await this.discourseService.syncSsoRecord(user);
+  //     // await this.discourseService.syncSsoRecord(user);
   //   } else {
   //     // Update phone verified if not set
   //     if (!user.phoneVerifiedAt) {
-  //       user.phoneVerifiedAt = new Date();
-  //       await this.em.persistAndFlush(user);
+  //       await this.userRepo.updateUser(user.id, {
+  //         phoneVerifiedAt: new Date(),
+  //       });
   //     }
   //   }
 
   //   // 6. Publish event (not implemented here)
   //   // ...
 
-  //   // 7. Issue tokens (placeholder, implement JWT issuing as needed)
+  //   // 7. Issue tokens
   //   const accessToken = await this.jwtService.issueAccessToken(user);
   //   const refreshToken = await this.jwtService.issueRefreshToken(user);
-  //   console.log(refreshToken);
 
   //   return {
   //     status: 'success',

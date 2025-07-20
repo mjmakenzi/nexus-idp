@@ -78,7 +78,7 @@ export class UserRoleEntity {
    * Used for audit trail and role assignment history
    * Required field - all role assignments must have a grant timestamp
    */
-  @Property({ name: 'granted_at' })
+  @Property({ fieldName: 'granted_at', serializedName: 'granted_at' })
   grantedAt!: Date;
 
   /**
@@ -88,7 +88,11 @@ export class UserRoleEntity {
    * When null, the role assignment is considered permanent
    * Used for time-limited elevated permissions and temporary access
    */
-  @Property({ name: 'expires_at', nullable: true })
+  @Property({
+    fieldName: 'expires_at',
+    serializedName: 'expires_at',
+    nullable: true,
+  })
   expiresAt?: Date;
 
   /**
@@ -98,7 +102,11 @@ export class UserRoleEntity {
    * Used for audit trail and accountability tracking
    * Examples: 'admin_user_123', 'system_auto_assignment', 'user_self_registration'
    */
-  @Property({ name: 'granted_by', nullable: true })
+  @Property({
+    fieldName: 'granted_by',
+    serializedName: 'granted_by',
+    nullable: true,
+  })
   grantedBy?: string;
 
   /**
@@ -108,6 +116,10 @@ export class UserRoleEntity {
    * Used for compliance reporting and administrative review
    * Examples: 'Temporary admin access for system maintenance', 'User requested elevated permissions', 'Automatic assignment based on department'
    */
-  @Property({ name: 'grant_reason', nullable: true })
+  @Property({
+    fieldName: 'grant_reason',
+    serializedName: 'grant_reason',
+    nullable: true,
+  })
   grantReason?: string;
 }

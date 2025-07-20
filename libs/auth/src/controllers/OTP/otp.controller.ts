@@ -1,32 +1,35 @@
 import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { LoginPhoneDto, OneClickPhoneDto, SendOtpPhoneDto } from '@app/auth';
 import { RcaptchaGuard } from '@app/shared-utils';
 import { FastifyRequest } from 'fastify';
-
-// import {
-//   OneClickEmailDto,
-//   OneClickPhoneDto,
-//   SendOptEmailDto,
-//   SendOtpPhoneDto,
-// } from '../../../../otp/src/dto/otp.dtp';
-// import { OtpService } from '../services/otp.service';
+import { AuthService } from '../../services/auth.service';
+import { OtpService } from '../../services/OTP/otp.service';
 
 const PATH = 'account';
 
 @Controller({ path: PATH })
 export class OtpController {
-  constructor() {}
+  constructor(
+    private readonly otpService: OtpService,
+    private readonly authService: AuthService,
+  ) {}
 
-  // // @UseGuards(RcaptchaGuard)
-  // @Post('v1/send-otp-phone')
-  // sendOtpPhone(@Req() req: FastifyRequest, @Body() body: SendOtpPhoneDto) {
-  //   return this.otpService.sendOtpPhone(req, body);
-  // }
+  // @UseGuards(RcaptchaGuard)
+  @Post('v1/send-otp-phone')
+  sendOtpPhone(@Req() req: FastifyRequest, @Body() body: SendOtpPhoneDto) {
+    return this.otpService.sendOtpPhone(req, body);
+  }
 
-  // // @UseGuards(RcaptchaGuard)
-  // @Post('v1/one-click-phone')
-  // oneClickPhone(@Body() body: OneClickPhoneDto) {
-  //   return this.otpService.oneClickPhone(body);
-  // }
+  // @UseGuards(RcaptchaGuard)
+  @Post('v1/one-click-phone')
+  oneClickPhone(@Body() body: LoginPhoneDto) {
+    return this.authService.loginPhone(body);
+  }
+
+  @Post('v1/refresh-token')
+  refreshToken(@Req() req: FastifyRequest) {
+    return this.authService.refreshToken(req);
+  }
 
   // @UseGuards(RcaptchaGuard)
   // @Post('v1/send-otp-email')
