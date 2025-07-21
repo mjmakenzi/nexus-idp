@@ -48,7 +48,7 @@ export class JwtService {
     // const exp = now + this.parseExpirationTime(expiresIn);
 
     const payload: JwtRefreshPayload = {
-      iss: this.config.getOrThrow<string>('jwt.iss'),
+      // iss: this.config.getOrThrow<string>('jwt.iss'),
       iat: now,
       type: 'refresh',
       sub: user.id.toString(),

@@ -1,52 +1,56 @@
-import { Injectable } from '@nestjs/common';
-import { SendOtpPhoneDto } from '@app/auth';
-import { OtpRepository, UserRepository } from '@app/db';
-import { CommonService, KavenegarService } from '@app/shared-utils';
-import { FastifyRequest } from 'fastify';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { CreateOtpDto, DeleteOtpDto, FindOtpDto } from '@app/auth';
+import { OtpEntity, OtpRepository } from '@app/db';
 
 @Injectable()
 export class OtpService {
   constructor(
-    private readonly userRepo: UserRepository,
+    // private readonly userRepo: UserRepository,
     private readonly otpRepo: OtpRepository,
-    private readonly kavenegarService: KavenegarService,
+    // private readonly kavenegarService: KavenegarService,
   ) {}
 
-  async sendOtpPhone(
-    req: FastifyRequest,
-    dto: SendOtpPhoneDto,
-  ): Promise<{ status: string; message: string }> {
+  async createOtp(dto: CreateOtpDto): Promise<OtpEntity> {
     // 1. Find user by phone
-    const user = await this.userRepo.getUserByPhone(dto);
+    // const user = await this.userRepo.getUserByPhone(dto);
 
     // 2. Check for recent OTP (limit)
-    const validOtp = await this.otpRepo.getRecentOtp(dto);
+    const validOtp: OtpEntity | null = await this.otpRepo.findByExpiredOtp(dto);
     if (validOtp) {
-      return { status: 'error', message: 'otp_limit' };
+      throw new BadRequestException('otp_limit');
     }
 
     // 3. Delete expired OTPs (older than 1 day)
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    await this.otpRepo.nativeDelete({ expiresAt: { $lte: yesterday } });
+    await this.deleteOtp(dto);
 
     // 4. Generate OTP
-    const otp = Math.floor(10000 + Math.random() * 90000).toString();
+    const otpHash = Math.floor(10000 + Math.random() * 90000).toString();
 
     // 5. Insert OTP
-    const userAgent = CommonService.getRequesterUserAgent(req);
-    const ip = CommonService.getRequesterIpAddress(req);
-    await this.otpRepo.createOtp(dto, userAgent, ip, otp, user);
+    // const userAgent = CommonService.getRequesterUserAgent(req);
+    // const ip = CommonService.getRequesterIpAddress(req);
+
+    return await this.otpRepo.createOtp(dto, otpHash);
 
     // 6. Send OTP by SMS
-    const smsResult = await this.kavenegarService.sendOtpBySms(
-      dto.phone_no,
-      otp,
-    );
-    if (!smsResult) {
-      return { status: 'error', message: 'sms_error' };
-    }
+    // const smsResult = await this.kavenegarService.sendOtpBySms(
+    //   dto.phone_no,
+    //   otp,
+    // );
+    // if (!smsResult) {
+    //   return { status: 'error', message: 'sms_error' };
+    // }
 
-    return { status: 'success', message: 'OTP sent successfully.' };
+    // return { status: 'success', message: 'OTP sent successfully.' };
+  }
+  async deleteOtp(dto: DeleteOtpDto) {
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000); // 1 day
+    dto.expiresAt = yesterday;
+    return await this.otpRepo.deleteOtp(dto);
+  }
+
+  async findByExpiredOtp(dto: FindOtpDto): Promise<OtpEntity | null> {
+    return await this.otpRepo.findByExpiredOtp(dto);
   }
 
   // async oneClickPhone(dto: OneClickPhoneDto): Promise<any> {

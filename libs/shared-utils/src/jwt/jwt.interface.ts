@@ -29,7 +29,7 @@ export interface JwtPayload {
 }
 
 export interface JwtRefreshPayload {
-  iss: string;
+  // iss: string;
   iat: number;
   exp?: number;
   type: string;

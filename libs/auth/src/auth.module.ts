@@ -10,13 +10,13 @@ import {
 } from '@app/shared-utils';
 import { UserModule } from '@app/user';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { OtpController } from './controllers/OTP/otp.controller';
-import { AuthService } from './services/auth.service';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
 import { OtpService } from './services/OTP/otp.service';
 
 @Module({
   imports: [
-    MikroOrmModule.forFeature([OtpEntity, UserEntity, ProfileEntity]),
+    MikroOrmModule.forFeature([OtpEntity]),
     UserModule,
     AppleModule,
     JwtModule,
@@ -27,6 +27,6 @@ import { OtpService } from './services/OTP/otp.service';
   ],
   providers: [AuthService, OtpService],
   exports: [AuthService],
-  controllers: [OtpController],
+  controllers: [AuthController],
 })
 export class AuthModule {}

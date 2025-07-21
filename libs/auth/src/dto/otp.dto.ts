@@ -1,23 +1,16 @@
-import { OtpPurpose } from '@app/db';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
-
-export class SendOtpPhoneDto {
-  @IsString()
-  @IsNotEmpty()
-  country_code!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  phone_no!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  type!: OtpPurpose;
-
-  @IsString()
-  @IsNotEmpty()
-  arcaptcha_token!: string;
-}
+import {
+  OtpDeliveryMethod,
+  OtpIdentifier,
+  OtpPurpose,
+  UserEntity,
+} from '@app/db';
+import {
+  IsDate,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class OneClickPhoneDto {
   @IsString()
@@ -61,4 +54,53 @@ export class OneClickEmailDto {
   @IsString()
   @IsNotEmpty()
   otp!: string;
+}
+
+export class CreateOtpDto {
+  @IsOptional()
+  user?: UserEntity | null;
+
+  @IsEnum(OtpPurpose)
+  @IsOptional()
+  purpose!: OtpPurpose;
+
+  @IsDate()
+  @IsNotEmpty()
+  expiresAt!: Date;
+
+  @IsEnum(OtpIdentifier)
+  @IsOptional()
+  identifier!: OtpIdentifier;
+
+  @IsString()
+  @IsNotEmpty()
+  userAgent!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  ipAddress!: string;
+
+  @IsEnum(OtpDeliveryMethod)
+  @IsNotEmpty()
+  deliveryMethod!: OtpDeliveryMethod;
+}
+
+export class FindOtpDto {
+  @IsEnum(OtpIdentifier)
+  @IsNotEmpty()
+  identifier!: OtpIdentifier;
+
+  @IsEnum(OtpPurpose)
+  @IsNotEmpty()
+  purpose!: OtpPurpose;
+
+  @IsDate()
+  @IsNotEmpty()
+  expiresAt!: Date;
+}
+
+export class DeleteOtpDto {
+  @IsDate()
+  @IsNotEmpty()
+  expiresAt!: Date;
 }

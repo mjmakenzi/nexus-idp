@@ -1,4 +1,5 @@
 import { OneClickPhoneDto, SendOtpPhoneDto } from '@app/auth';
+import { CreateUserDto, findUserByPhoneDto } from '@app/user';
 import { EntityRepository } from '@mikro-orm/postgresql';
 import { UserEntity } from '../entities/user.entity';
 
@@ -27,31 +28,24 @@ export class UserRepository extends EntityRepository<UserEntity> {
   /**
    * Get user by phone number
    */
-  async getUserByPhone(
-    dto: OneClickPhoneDto | SendOtpPhoneDto,
-  ): Promise<UserEntity | null> {
+  async findUserByPhone(dto: findUserByPhoneDto): Promise<UserEntity | null> {
     return await this.findOne({
-      countryCode: dto.country_code,
-      phoneNumber: dto.phone_no,
+      countryCode: dto.countryCode,
+      phoneNumber: dto.phoneNumber,
     });
   }
 
   /**
    * Create a new user
    */
-  async createUser(
-    dto: OneClickPhoneDto,
-    username: string,
-    passwordHash: string,
-    passwordSalt: string,
-  ): Promise<UserEntity> {
+  async createUser(dto: CreateUserDto): Promise<UserEntity> {
     const user = this.create({
-      username,
-      passwordHash,
-      passwordSalt,
-      countryCode: dto.country_code,
-      phoneNumber: dto.phone_no,
-      phoneVerifiedAt: new Date(),
+      username: dto.username || '',
+      passwordHash: dto.passwordHash || '',
+      passwordSalt: dto.passwordSalt || '',
+      countryCode: dto.countryCode,
+      phoneNumber: dto.phoneNumber,
+      phoneVerifiedAt: dto.phoneVerifiedAt,
     });
     await this.em.persistAndFlush(user);
     return user;
