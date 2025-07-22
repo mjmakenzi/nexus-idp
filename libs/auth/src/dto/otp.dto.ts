@@ -4,6 +4,7 @@ import {
   OtpPurpose,
   UserEntity,
 } from '@app/db';
+import { Type } from 'class-transformer';
 import {
   IsDate,
   IsEnum,
@@ -64,10 +65,6 @@ export class CreateOtpDto {
   @IsOptional()
   purpose!: OtpPurpose;
 
-  @IsDate()
-  @IsNotEmpty()
-  expiresAt!: Date;
-
   @IsEnum(OtpIdentifier)
   @IsOptional()
   identifier!: OtpIdentifier;
@@ -93,14 +90,4 @@ export class FindOtpDto {
   @IsEnum(OtpPurpose)
   @IsNotEmpty()
   purpose!: OtpPurpose;
-
-  @IsDate()
-  @IsNotEmpty()
-  expiresAt!: Date;
-}
-
-export class DeleteOtpDto {
-  @IsDate()
-  @IsNotEmpty()
-  expiresAt!: Date;
 }

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { CreateOtpDto, DeleteOtpDto, FindOtpDto } from '@app/auth';
+import { CreateOtpDto, FindOtpDto } from '@app/auth';
 import { OtpEntity, OtpRepository } from '@app/db';
 
 @Injectable()
@@ -21,7 +21,7 @@ export class OtpService {
     }
 
     // 3. Delete expired OTPs (older than 1 day)
-    await this.deleteOtp(dto);
+    await this.deleteOtp();
 
     // 4. Generate OTP
     const otpHash = Math.floor(10000 + Math.random() * 90000).toString();
@@ -43,12 +43,9 @@ export class OtpService {
 
     // return { status: 'success', message: 'OTP sent successfully.' };
   }
-  async deleteOtp(dto: DeleteOtpDto) {
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000); // 1 day
-    dto.expiresAt = yesterday;
-    return await this.otpRepo.deleteOtp(dto);
+  async deleteOtp() {
+    return await this.otpRepo.deleteOtp();
   }
-
   async findByExpiredOtp(dto: FindOtpDto): Promise<OtpEntity | null> {
     return await this.otpRepo.findByExpiredOtp(dto);
   }

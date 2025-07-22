@@ -14,12 +14,9 @@ export class JwtService {
   async issueAccessToken(user: UserEntity): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = this.config.getOrThrow<string>('jwt.expiresIn');
-    // const exp = now + this.parseExpirationTime(expiresIn);
 
     const payload: JwtPayload = {
-      // iss: this.config.getOrThrow<string>('jwt.iss'),
       iat: now,
-      // exp: exp,
       type: 'access',
       sub: user.id.toString(),
       data: {
@@ -45,10 +42,8 @@ export class JwtService {
   async issueRefreshToken(user: UserEntity): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = this.config.getOrThrow<string>('jwt.refreshExpiresIn');
-    // const exp = now + this.parseExpirationTime(expiresIn);
 
     const payload: JwtRefreshPayload = {
-      // iss: this.config.getOrThrow<string>('jwt.iss'),
       iat: now,
       type: 'refresh',
       sub: user.id.toString(),

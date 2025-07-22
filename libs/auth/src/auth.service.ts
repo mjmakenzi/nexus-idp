@@ -1,7 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import {
   CreateOtpDto,
-  DeleteOtpDto,
   FindOtpDto,
   LoginPhoneDto,
   SendOtpPhoneDto,
@@ -45,11 +44,11 @@ export class AuthService {
       user: user,
       identifier: OtpIdentifier.PHONE,
       purpose: dto.type,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
       deliveryMethod: OtpDeliveryMethod.SMS,
       userAgent: CommonService.getRequesterUserAgent(req),
       ipAddress: CommonService.getRequesterIpAddress(req),
     };
+
     const otp = await this.otpService.createOtp(createOtpDto);
 
     const smsResult = await this.kavenegarService.sendOtpBySms(
@@ -69,7 +68,6 @@ export class AuthService {
     const findOtpDto: FindOtpDto = {
       identifier: OtpIdentifier.PHONE,
       purpose: OtpPurpose.LOGIN,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
     };
 
     const validOtp = await this.otpService.findByExpiredOtp(findOtpDto);
@@ -77,10 +75,8 @@ export class AuthService {
       return { status: 'error', message: 'invalid_otp' };
     }
     // 2. Delete the OTP after use
-    const deleteOtpDto: DeleteOtpDto = {
-      expiresAt: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes
-    };
-    await this.otpService.deleteOtp(deleteOtpDto);
+
+    await this.otpService.deleteOtp();
 
     const findUserByPhoneDto: findUserByPhoneDto = {
       countryCode: dto.country_code,
@@ -121,16 +117,16 @@ export class AuthService {
     }
 
     // 4. Issue tokens
-    // const accessToken = await this.jwtService.issueAccessToken(user);
-    // const refreshToken = await this.jwtService.issueRefreshToken(user);
+    const accessToken = await this.jwtService.issueAccessToken(user);
+    const refreshToken = await this.jwtService.issueRefreshToken(user);
 
     return {
       status: 'success',
       data: {
         user_id: String(user.id),
-        // access_token: accessToken,
-        // token_type: 'bearer',
-        // refresh_token: refreshToken,
+        access_token: accessToken,
+        token_type: 'bearer',
+        refresh_token: refreshToken,
         action: eventAction,
       },
     };

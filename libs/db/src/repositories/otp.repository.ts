@@ -1,9 +1,10 @@
-import { CreateOtpDto, DeleteOtpDto, FindOtpDto } from '@app/auth';
+import { CreateOtpDto, FindOtpDto } from '@app/auth';
 import { EntityRepository } from '@mikro-orm/postgresql';
 import { OtpEntity } from '../entities/otp.entity';
 
 export class OtpRepository extends EntityRepository<OtpEntity> {
   async createOtp(dto: CreateOtpDto, otpHash: string): Promise<OtpEntity> {
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes,
     const otpEntity = await this.create({
       user: dto.user,
       identifier: dto.identifier,
@@ -12,8 +13,7 @@ export class OtpRepository extends EntityRepository<OtpEntity> {
       deliveryMethod: dto.deliveryMethod,
       userAgent: dto.userAgent,
       ipAddress: dto.ipAddress,
-      expiresAt: dto.expiresAt,
-      // expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+      expiresAt: expiresAt,
     });
 
     await this.em.persistAndFlush(otpEntity);
@@ -71,20 +71,20 @@ export class OtpRepository extends EntityRepository<OtpEntity> {
   // }
 
   async findByExpiredOtp(dto: FindOtpDto): Promise<OtpEntity | null> {
-    // const fourMinutesFromNow = new Date(Date.now() + 4 * 60 * 1000);
+    const expiresAt = new Date(Date.now() - 5 * 60 * 1000); // 5 minutes,
     return await this.findOne(
       {
         identifier: dto.identifier,
         purpose: dto.purpose,
-        expiresAt: { $gt: dto.expiresAt },
+        expiresAt: { $gt: expiresAt },
       },
       { orderBy: { createdAt: 'DESC' } },
     );
   }
 
-  async deleteOtp(dto: DeleteOtpDto) {
+  async deleteOtp() {
     return await this.nativeDelete({
-      expiresAt: { $gt: dto.expiresAt },
+      expiresAt: { $gt: new Date(Date.now() - 5 * 60 * 1000) },
     });
   }
   // async getEmailOtp(
