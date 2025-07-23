@@ -10,7 +10,9 @@ import { AuditLogEntity } from './entities/audit-log.entity';
 import { DeviceEntity } from './entities/device.entity';
 import { OtpEntity } from './entities/otp.entity';
 import { ProfileEntity } from './entities/profile.entity';
+import { RateLimitEntity } from './entities/rate-limit.entity';
 import { RevokedTokenEntity } from './entities/revoked-token.entity';
+import { RoleEntity } from './entities/role.entity';
 import { SessionEntity } from './entities/session.entity';
 import { UserEntity } from './entities/user.entity';
 
@@ -37,6 +39,8 @@ const config: Options<PostgreSqlDriver> = defineConfig({
     UserEntity,
     OtpEntity,
     ProfileEntity,
+    RateLimitEntity,
+    RoleEntity,
   ],
   loadStrategy: LoadStrategy.JOINED,
   migrations: {

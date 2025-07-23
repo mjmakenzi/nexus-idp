@@ -14,10 +14,16 @@ export class OtpRepository extends EntityRepository<OtpEntity> {
       userAgent: dto.userAgent,
       ipAddress: dto.ipAddress,
       expiresAt: expiresAt,
+      attempts: 0,
+      maxAttempts: 5,
     });
 
     await this.em.persistAndFlush(otpEntity);
     return otpEntity;
+  }
+
+  async updateOtp(id: number, otp: OtpEntity) {
+    return await this.nativeUpdate({ id }, otp);
   }
 
   // async createEmailOtp(

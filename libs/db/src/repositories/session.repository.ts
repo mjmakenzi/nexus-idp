@@ -1,3 +1,4 @@
+import { CreateSessionDto } from '@app/auth/dto/session.dto';
 import { EntityRepository } from '@mikro-orm/postgresql';
 import { SessionEntity } from '../entities/session.entity';
 
@@ -5,9 +6,21 @@ export class SessionRepository extends EntityRepository<SessionEntity> {
   /**
    * Create and persist a new session
    */
-  async createSession(session: SessionEntity): Promise<SessionEntity> {
-    await this.em.persistAndFlush(session);
-    return session;
+  async createSession(dto: CreateSessionDto): Promise<SessionEntity> {
+    const sessionEntity = await this.create({
+      user: dto.user,
+      device: dto.device,
+      ipAddress: dto.ipAddress,
+      userAgent: dto.userAgent,
+      createdAt: new Date(),
+      lastActivityAt: new Date(),
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+      accessTokenHash: dto.accessTokenHash,
+      refreshTokenHash: dto.refreshTokenHash,
+      terminatedAt: null,
+    });
+    await this.em.persistAndFlush(sessionEntity);
+    return sessionEntity;
   }
 
   /**

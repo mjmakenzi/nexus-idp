@@ -1,9 +1,8 @@
 import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { LoginPhoneDto, SendOtpPhoneDto } from '@app/auth';
-import { RcaptchaGuard } from '@app/shared-utils';
+import { JwtRefreshAuthGuard, RcaptchaGuard } from '@app/shared-utils';
 import { FastifyRequest } from 'fastify';
 import { AuthService } from './auth.service';
-import { OtpService } from './services/OTP/otp.service';
 
 const PATH = 'account';
 
@@ -19,10 +18,11 @@ export class AuthController {
 
   // @UseGuards(RcaptchaGuard)
   @Post('v1/one-click-phone')
-  oneClickPhone(@Body() body: LoginPhoneDto) {
-    return this.authService.loginPhone(body);
+  oneClickPhone(@Req() req: FastifyRequest, @Body() body: LoginPhoneDto) {
+    return this.authService.loginPhone(req, body);
   }
 
+  @UseGuards(JwtRefreshAuthGuard)
   @Post('v1/refresh-token')
   refreshToken(@Req() req: FastifyRequest) {
     return this.authService.refreshToken(req);

@@ -5,6 +5,7 @@ export * from './jwt/jwt.module';
 export * from './jwt/jwt.service';
 export * from './jwt/jwt.config';
 export * from './jwt/jwt.guard';
+export * from './jwt/jwt-refresh.guard';
 export * from './jwt/jwt.interface';
 export * from './rcaptcha/rcaptcha.guard';
 export * from './rcaptcha/rcaptcha.config';

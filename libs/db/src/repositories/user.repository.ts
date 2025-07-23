@@ -1,4 +1,3 @@
-import { OneClickPhoneDto, SendOtpPhoneDto } from '@app/auth';
 import { CreateUserDto, findUserByPhoneDto } from '@app/user';
 import { EntityRepository } from '@mikro-orm/postgresql';
 import { UserEntity } from '../entities/user.entity';

@@ -30,6 +30,12 @@
       "@app/db/*": [
         "libs/db/src/*"
       ],
+      "@app/devices": [
+        "libs/devices/src"
+      ],
+      "@app/devices/*": [
+        "libs/devices/src/*"
+      ],
       "@app/otp": [
         "libs/otp/src"
       ],
@@ -47,6 +53,12 @@
       ],
       "@app/profile/*": [
         "libs/profile/src/*"
+      ],
+      "@app/security": [
+        "libs/security/src"
+      ],
+      "@app/security/*": [
+        "libs/security/src/*"
       ],
       "@app/session": [
         "libs/session/src"

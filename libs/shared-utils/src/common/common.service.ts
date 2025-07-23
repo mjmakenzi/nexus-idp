@@ -25,6 +25,14 @@ export class CommonService {
     return { passwordHash, passwordSalt };
   }
 
+  async hash(data: string): Promise<string> {
+    return await bcrypt.hash(data, 10);
+  }
+
+  async compare(data: string, hash: string): Promise<boolean> {
+    return await bcrypt.compare(data, hash);
+  }
+
   /**
    * Get the requester's IP address from the request headers or connection.
    */

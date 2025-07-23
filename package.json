@@ -117,6 +117,8 @@
     "moduleNameMapper": {
       "^@app/auth(|/.*)$": "<rootDir>/libs/auth/src/$1",
       "^@app/db(|/.*)$": "<rootDir>/libs/db/src/$1",
+      "^@app/devices(|/.*)$": "<rootDir>/libs/devices/src/$1",
+      "^@app/security(|/.*)$": "<rootDir>/libs/security/src/$1",
       "^@app/shared-utils(|/.*)$": "<rootDir>/libs/shared-utils/src/$1",
       "^@app/user(|/.*)$": "<rootDir>/libs/user/src/$1"
     }

@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import {
   CreateOtpDto,
   FindOtpDto,
@@ -11,6 +15,11 @@ import {
   OtpPurpose,
   UserEntity,
 } from '@app/db';
+import { DevicesService } from '@app/devices';
+import { CreateDeviceDto } from '@app/devices/device.dto';
+import { SecurityService } from '@app/security';
+import { FindRateLimitDto } from '@app/security/dto/rate-limit.dto';
+import { CreateSecurityEventDto } from '@app/security/dto/security-event.dto';
 import { CommonService, JwtService, KavenegarService } from '@app/shared-utils';
 import {
   CreateUserDto,
@@ -19,7 +28,9 @@ import {
   UserService,
 } from '@app/user';
 import { FastifyRequest } from 'fastify';
+import { CreateSessionDto } from './dto/session.dto';
 import { OtpService } from './services/OTP/otp.service';
+import { SessionService } from './services/session/session.service';
 
 @Injectable()
 export class AuthService {
@@ -30,6 +41,9 @@ export class AuthService {
     private readonly kavenegarService: KavenegarService,
     private readonly userService: UserService,
     private readonly profileService: ProfileService,
+    private readonly sessionService: SessionService,
+    private readonly deviceService: DevicesService,
+    private readonly securityService: SecurityService,
   ) {}
 
   async sendOtpPhone(req: FastifyRequest, dto: SendOtpPhoneDto) {
@@ -39,6 +53,17 @@ export class AuthService {
     };
     const user: UserEntity | null =
       await this.userService.findUserByPhone(findUserByPhoneDto);
+
+    const findRateLimitDto: FindRateLimitDto = {
+      identifier: user?.id.toString() || '',
+      limitType: 'otp',
+    };
+
+    const rateLimit =
+      await this.securityService.findRateLimit(findRateLimitDto);
+    if (rateLimit && rateLimit.attempts >= rateLimit.maxAttempts) {
+      throw new BadRequestException('Too many requests');
+    }
 
     const createOtpDto: CreateOtpDto = {
       user: user,
@@ -53,7 +78,7 @@ export class AuthService {
 
     const smsResult = await this.kavenegarService.sendOtpBySms(
       dto.phone_no,
-      otp.otpHash,
+      otp,
     );
 
     if (!smsResult) {
@@ -63,20 +88,30 @@ export class AuthService {
     return { status: 'success', message: 'OTP sent successfully.' };
   }
 
-  async loginPhone(dto: LoginPhoneDto) {
+  async loginPhone(req: FastifyRequest, dto: LoginPhoneDto) {
     // 1. Check if OTP exists and is valid
     const findOtpDto: FindOtpDto = {
       identifier: OtpIdentifier.PHONE,
       purpose: OtpPurpose.LOGIN,
     };
 
-    const validOtp = await this.otpService.findByExpiredOtp(findOtpDto);
-    if (!validOtp) {
+    const otp = await this.otpService.findByExpiredOtp(findOtpDto);
+    if (!otp) {
       return { status: 'error', message: 'invalid_otp' };
     }
-    // 2. Delete the OTP after use
 
-    await this.otpService.deleteOtp();
+    const valid = await this.commonService.compare(dto.otp, otp.otpHash);
+    if (!valid) {
+      otp.attempts += 1;
+      if (otp.attempts >= otp.maxAttempts) {
+        otp.expiresAt = new Date(); // immediately expire
+      }
+      await this.otpService.updateOtp(otp.id, otp);
+      throw new BadRequestException('invalid_otp');
+    }
+
+    // 2. Delete the OTP after use
+    // await this.otpService.deleteOtp();
 
     const findUserByPhoneDto: findUserByPhoneDto = {
       countryCode: dto.country_code,
@@ -116,6 +151,51 @@ export class AuthService {
       }
     }
 
+    const createDeviceDto: CreateDeviceDto = {
+      user: user,
+      deviceFingerprint: req.headers['x-device-fingerprint'] as string,
+      deviceType: 'web',
+      isTrusted: false,
+      userAgent: CommonService.getRequesterUserAgent(req),
+      lastIpAddress: CommonService.getRequesterIpAddress(req),
+      deviceName: req.headers['x-device-name'] as string,
+      osName: req.headers['x-os-name'] as string,
+      osVersion: req.headers['x-os-version'] as string,
+      browserName: req.headers['x-browser-name'] as string,
+      browserVersion: req.headers['x-browser-version'] as string,
+    };
+
+    const device = await this.deviceService.createDevice(createDeviceDto);
+
+    const accessTokenHash = this.commonService.hash(
+      await this.jwtService.issueAccessToken(user),
+    );
+    const refreshTokenHash = this.commonService.hash(
+      await this.jwtService.issueRefreshToken(user),
+    );
+
+    const createSessionDto: CreateSessionDto = {
+      user: user,
+      device: device,
+      ipAddress: CommonService.getRequesterIpAddress(req),
+      userAgent: CommonService.getRequesterUserAgent(req),
+      accessTokenHash: await accessTokenHash,
+      refreshTokenHash: await refreshTokenHash,
+    };
+
+    const session = await this.sessionService.createSession(createSessionDto);
+
+    const createSecurityEventDto: CreateSecurityEventDto = {
+      user: user,
+      device: device,
+      session: session,
+      eventType: 'login',
+      eventCategory: 'auth',
+      severity: 'low',
+    };
+
+    await this.securityService.createSecurityEvent(createSecurityEventDto);
+
     // 4. Issue tokens
     const accessToken = await this.jwtService.issueAccessToken(user);
     const refreshToken = await this.jwtService.issueRefreshToken(user);
@@ -124,6 +204,7 @@ export class AuthService {
       status: 'success',
       data: {
         user_id: String(user.id),
+        session_id: String(session.id),
         access_token: accessToken,
         token_type: 'bearer',
         refresh_token: refreshToken,

@@ -1,16 +1,18 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateOtpDto, FindOtpDto } from '@app/auth';
 import { OtpEntity, OtpRepository } from '@app/db';
+import { CommonService } from '@app/shared-utils';
 
 @Injectable()
 export class OtpService {
   constructor(
     // private readonly userRepo: UserRepository,
     private readonly otpRepo: OtpRepository,
+    private readonly commonService: CommonService,
     // private readonly kavenegarService: KavenegarService,
   ) {}
 
-  async createOtp(dto: CreateOtpDto): Promise<OtpEntity> {
+  async createOtp(dto: CreateOtpDto): Promise<string> {
     // 1. Find user by phone
     // const user = await this.userRepo.getUserByPhone(dto);
 
@@ -24,13 +26,16 @@ export class OtpService {
     await this.deleteOtp();
 
     // 4. Generate OTP
-    const otpHash = Math.floor(10000 + Math.random() * 90000).toString();
+    const otpRaw = Math.floor(10000 + Math.random() * 90000).toString();
+    const otpHash = await this.commonService.hash(otpRaw);
 
     // 5. Insert OTP
     // const userAgent = CommonService.getRequesterUserAgent(req);
     // const ip = CommonService.getRequesterIpAddress(req);
 
-    return await this.otpRepo.createOtp(dto, otpHash);
+    await this.otpRepo.createOtp(dto, otpHash);
+
+    return otpRaw;
 
     // 6. Send OTP by SMS
     // const smsResult = await this.kavenegarService.sendOtpBySms(
@@ -43,9 +48,15 @@ export class OtpService {
 
     // return { status: 'success', message: 'OTP sent successfully.' };
   }
+
+  async updateOtp(id: number, otp: OtpEntity) {
+    return await this.otpRepo.updateOtp(id, otp);
+  }
+
   async deleteOtp() {
     return await this.otpRepo.deleteOtp();
   }
+
   async findByExpiredOtp(dto: FindOtpDto): Promise<OtpEntity | null> {
     return await this.otpRepo.findByExpiredOtp(dto);
   }

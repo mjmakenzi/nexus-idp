@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
-import { OtpEntity, ProfileEntity, UserEntity } from '@app/db';
+import { OtpEntity, SessionEntity } from '@app/db';
+import { DevicesModule } from '@app/devices';
+import { SecurityModule } from '@app/security';
 import {
   AppleModule,
   DiscourseModule,
@@ -13,10 +15,11 @@ import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { OtpService } from './services/OTP/otp.service';
+import { SessionService } from './services/session/session.service';
 
 @Module({
   imports: [
-    MikroOrmModule.forFeature([OtpEntity]),
+    MikroOrmModule.forFeature([OtpEntity, SessionEntity]),
     UserModule,
     AppleModule,
     JwtModule,
@@ -24,8 +27,10 @@ import { OtpService } from './services/OTP/otp.service';
     DiscourseModule,
     KavenegarModule,
     NodemailerModule,
+    DevicesModule,
+    SecurityModule,
   ],
-  providers: [AuthService, OtpService],
+  providers: [AuthService, OtpService, SessionService],
   exports: [AuthService],
   controllers: [AuthController],
 })

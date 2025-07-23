@@ -7,6 +7,8 @@ import { AuditLogEntity } from './entities/audit-log.entity';
 import { DeviceEntity } from './entities/device.entity';
 import { OtpEntity } from './entities/otp.entity';
 import { ProfileEntity } from './entities/profile.entity';
+import { RateLimitEntity } from './entities/rate-limit.entity';
+import { SecurityEventEntity } from './entities/security-event.entity';
 import { RevokedTokenEntity } from './entities/revoked-token.entity';
 import { SessionEntity } from './entities/session.entity';
 import { UserEntity } from './entities/user.entity';
@@ -34,6 +36,8 @@ import config from './mikro-orm.config';
       RevokedTokenEntity,
       SessionEntity,
       DeviceEntity,
+      RateLimitEntity,
+      SecurityEventEntity,
     ]),
   ],
   exports: [MikroOrmModule],

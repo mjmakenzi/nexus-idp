@@ -46,6 +46,24 @@
         "tsConfigPath": "libs/db/tsconfig.lib.json"
       }
     },
+    "devices": {
+      "type": "library",
+      "root": "libs/devices",
+      "entryFile": "index",
+      "sourceRoot": "libs/devices/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/devices/tsconfig.lib.json"
+      }
+    },
+    "security": {
+      "type": "library",
+      "root": "libs/security",
+      "entryFile": "index",
+      "sourceRoot": "libs/security/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/security/tsconfig.lib.json"
+      }
+    },
     "shared-utils": {
       "type": "library",
       "root": "libs/shared-utils",

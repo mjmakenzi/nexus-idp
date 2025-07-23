@@ -6,11 +6,13 @@ export * from './entities/user.entity';
 export * from './entities/profile.entity';
 export * from './entities/otp.entity';
 export * from './entities/audit-log.entity';
-
+export * from './entities/security-event.entity';
+export * from './entities/rate-limit.entity';
 export * from './repositories/session.repository';
-
 export * from './repositories/revoked-token.repository';
 export * from './repositories/device.repository';
 export * from './repositories/user.repository';
 export * from './repositories/profile.repository';
 export * from './repositories/otp.repository';
+export * from './repositories/security-event.repository';
+export * from './repositories/rate-limit.repository';

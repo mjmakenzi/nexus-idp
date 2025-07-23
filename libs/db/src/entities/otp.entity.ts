@@ -117,16 +117,16 @@ export class OtpEntity extends BaseEntity {
    * Used to implement rate limiting and prevent brute force attacks.
    * NOT USED
    */
-  // @Property({ default: 0 })
-  // attempts: number = 0;
+  @Property({ default: 0 })
+  attempts: number = 0;
 
   /**
    * Maximum allowed verification attempts before OTP is invalidated.
    * Defaults to 5 attempts for security.
    * NOT USED
    */
-  // @Property({ name: 'max_attempts', default: 5 })
-  // maxAttempts: number = 5;
+  @Property({ name: 'max_attempts', default: 5 })
+  maxAttempts: number = 5;
 
   /**
    * Additional context data for the OTP (device info, session data, etc.).
