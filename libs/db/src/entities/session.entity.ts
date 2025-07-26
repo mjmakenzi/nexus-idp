@@ -191,7 +191,12 @@ export class SessionEntity extends BaseEntity {
    * Used for automatic session cleanup and expiration enforcement
    * Required field - all sessions must have an expiration time
    */
-  @Property({ fieldName: 'expires_at', serializedName: 'expires_at' })
+  @Property({
+    fieldName: 'expires_at',
+    serializedName: 'expires_at',
+    type: 'datetime',
+    onCreate: () => new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days
+  })
   expiresAt!: Date;
 
   /**

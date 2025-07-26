@@ -1,16 +1,6 @@
-import { DeviceEntity, SessionEntity, UserEntity } from '@app/db';
-import { IsNotEmpty, IsOptional } from 'class-validator';
+import { IsDate, IsNotEmpty } from 'class-validator';
 
 export class CreateSecurityEventDto {
-  @IsOptional()
-  user?: UserEntity;
-
-  @IsOptional()
-  device?: DeviceEntity;
-
-  @IsOptional()
-  session?: SessionEntity;
-
   @IsNotEmpty()
   eventType!: string;
 
@@ -20,9 +10,7 @@ export class CreateSecurityEventDto {
   @IsNotEmpty()
   severity!: string;
 
-  @IsOptional()
-  riskScore?: string;
-
-  @IsOptional()
-  eventData?: Record<string, unknown>;
+  @IsNotEmpty()
+  @IsDate()
+  occurredAt!: Date;
 }

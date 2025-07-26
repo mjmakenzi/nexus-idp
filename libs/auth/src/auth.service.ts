@@ -16,10 +16,8 @@ import {
   UserEntity,
 } from '@app/db';
 import { DevicesService } from '@app/devices';
-import { CreateDeviceDto } from '@app/devices/device.dto';
 import { SecurityService } from '@app/security';
 import { FindRateLimitDto } from '@app/security/dto/rate-limit.dto';
-import { CreateSecurityEventDto } from '@app/security/dto/security-event.dto';
 import { CommonService, JwtService, KavenegarService } from '@app/shared-utils';
 import {
   CreateUserDto,
@@ -28,7 +26,6 @@ import {
   UserService,
 } from '@app/user';
 import { FastifyRequest } from 'fastify';
-import { CreateSessionDto } from './dto/session.dto';
 import { OtpService } from './services/OTP/otp.service';
 import { SessionService } from './services/session/session.service';
 
@@ -76,6 +73,8 @@ export class AuthService {
 
     const otp = await this.otpService.createOtp(createOtpDto);
 
+    console.log('otp', otp);
+
     const smsResult = await this.kavenegarService.sendOtpBySms(
       dto.phone_no,
       otp,
@@ -89,7 +88,7 @@ export class AuthService {
   }
 
   async loginPhone(req: FastifyRequest, dto: LoginPhoneDto) {
-    // 1. Check if OTP exists and is valid
+    //1. Check if OTP exists and is valid
     const findOtpDto: FindOtpDto = {
       identifier: OtpIdentifier.PHONE,
       purpose: OtpPurpose.LOGIN,
@@ -110,7 +109,7 @@ export class AuthService {
       throw new BadRequestException('invalid_otp');
     }
 
-    // 2. Delete the OTP after use
+    // 1. Delete the OTP after use
     // await this.otpService.deleteOtp();
 
     const findUserByPhoneDto: findUserByPhoneDto = {
@@ -118,7 +117,7 @@ export class AuthService {
       phoneNumber: dto.phone_no,
     };
 
-    // 3. Find or register the user
+    // 2. Find or register the user
     let user: UserEntity | null =
       await this.userService.findUserByPhone(findUserByPhoneDto);
     let eventAction = 'login';
@@ -137,7 +136,7 @@ export class AuthService {
         return { status: 'error', message: 'db_error_insert' };
       }
 
-      // await this.profileService.createProfile(user, createProfileDto);
+      const profile = await this.profileService.createProfile(user);
 
       // Optionally: sync to Discourse, etc.
       // await this.discourseService.syncSsoRecord(user);
@@ -150,55 +149,29 @@ export class AuthService {
         await this.userService.updateUser(user.id, updateUserDto);
       }
     }
+    // 3. Create device
+    const device = await this.deviceService.createDevice(user, req);
 
-    const createDeviceDto: CreateDeviceDto = {
-      user: user,
-      deviceFingerprint: req.headers['x-device-fingerprint'] as string,
-      deviceType: 'web',
-      isTrusted: false,
-      userAgent: CommonService.getRequesterUserAgent(req),
-      lastIpAddress: CommonService.getRequesterIpAddress(req),
-      deviceName: req.headers['x-device-name'] as string,
-      osName: req.headers['x-os-name'] as string,
-      osVersion: req.headers['x-os-version'] as string,
-      browserName: req.headers['x-browser-name'] as string,
-      browserVersion: req.headers['x-browser-version'] as string,
-    };
+    // 5. Create session
+    const session = await this.sessionService.createSession(user, device, req);
 
-    const device = await this.deviceService.createDevice(createDeviceDto);
+    // 6. Create security event
+    await this.securityService.createSecurityEvent(user, req, session);
 
-    const accessTokenHash = this.commonService.hash(
-      await this.jwtService.issueAccessToken(user),
+    // 7. Issue tokens
+    const accessToken = await this.jwtService.issueAccessToken(
+      user,
+      session.id.toString(),
     );
-    const refreshTokenHash = this.commonService.hash(
-      await this.jwtService.issueRefreshToken(user),
+    const refreshToken = await this.jwtService.issueRefreshToken(
+      user,
+      session.id.toString(),
     );
 
-    const createSessionDto: CreateSessionDto = {
-      user: user,
-      device: device,
-      ipAddress: CommonService.getRequesterIpAddress(req),
-      userAgent: CommonService.getRequesterUserAgent(req),
-      accessTokenHash: await accessTokenHash,
-      refreshTokenHash: await refreshTokenHash,
-    };
-
-    const session = await this.sessionService.createSession(createSessionDto);
-
-    const createSecurityEventDto: CreateSecurityEventDto = {
-      user: user,
-      device: device,
-      session: session,
-      eventType: 'login',
-      eventCategory: 'auth',
-      severity: 'low',
-    };
-
-    await this.securityService.createSecurityEvent(createSecurityEventDto);
-
-    // 4. Issue tokens
-    const accessToken = await this.jwtService.issueAccessToken(user);
-    const refreshToken = await this.jwtService.issueRefreshToken(user);
+    // 8. Update session with tokens
+    session.accessTokenHash = await this.commonService.hash(accessToken);
+    session.refreshTokenHash = await this.commonService.hash(refreshToken);
+    await this.sessionService.updateSession(session.id, session);
 
     return {
       status: 'success',
@@ -215,25 +188,22 @@ export class AuthService {
 
   async refreshToken(req: FastifyRequest) {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        throw new UnauthorizedException('Invalid authorization header');
-      }
-      const refreshToken = authHeader.substring(7);
-      const payload = await this.jwtService.verifyToken(refreshToken);
-      if (!payload) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
-      // const user = await this.userService.findUserByPhone(Number(payload.sub));
-      const user = null;
-      if (!user) {
-        throw new UnauthorizedException('User not found');
-      }
-      const accessToken = await this.jwtService.issueAccessToken(user);
-      const newRefreshToken = await this.jwtService.issueRefreshToken(user);
+      const session = (req as any).user;
+      const accessToken = await this.jwtService.issueAccessToken(
+        session.user,
+        session.id.toString(),
+      );
+      const newRefreshToken = await this.jwtService.issueRefreshToken(
+        session.user,
+        session.id.toString(),
+      );
+      session.accessTokenHash = await this.commonService.hash(accessToken);
+      session.refreshTokenHash = await this.commonService.hash(newRefreshToken);
+      await this.sessionService.updateSession(session.id, session);
       return {
         status: 'success',
         data: {
+          session_id: String(session.id),
           access_token: accessToken,
           refresh_token: newRefreshToken,
         },

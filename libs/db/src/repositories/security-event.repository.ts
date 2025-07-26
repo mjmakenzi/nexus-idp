@@ -123,26 +123,11 @@ export class SecurityEventRepository extends EntityRepository<SecurityEventEntit
   /**
    * Create a new security event
    */
-  async createSecurityEvent(securityEventData: {
-    user?: UserEntity;
-    eventType: string;
-    eventCategory: string;
-    severity: string;
-    riskScore?: string;
-    eventData?: Record<string, unknown>;
-    ipAddress?: string;
-    geoLocation?: Record<string, unknown>;
-    userAgent?: string;
-    sessionId?: string;
-    occurredAt?: Date;
-    requiresAction?: boolean;
-  }): Promise<SecurityEventEntity> {
-    const securityEvent = this.create({
-      ...securityEventData,
-      occurredAt: securityEventData.occurredAt || new Date(),
-      requiresAction: securityEventData.requiresAction ?? false,
-      isResolved: false,
-    });
+  async createSecurityEvent(
+    dto: Partial<SecurityEventEntity>,
+  ): Promise<SecurityEventEntity> {
+    const securityEvent = this.create(dto as SecurityEventEntity);
+
     await this.em.persistAndFlush(securityEvent);
     return securityEvent;
   }

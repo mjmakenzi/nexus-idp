@@ -67,13 +67,14 @@ export class DeviceEntity extends BaseEntity {
   /**
    * User-friendly name for the device (e.g., "John's iPhone", "Work Laptop").
    * Can be set by the user for easier device management.
+   * NOT USED
    */
-  @Property({
-    fieldName: 'device_name',
-    serializedName: 'device_name',
-    nullable: true,
-  })
-  deviceName?: string;
+  // @Property({
+  //   fieldName: 'device_name',
+  //   serializedName: 'device_name',
+  //   nullable: true,
+  // })
+  // deviceName?: string;
 
   /**
    * Device category (mobile, desktop, tablet, etc.).
@@ -245,37 +246,4 @@ export class DeviceEntity extends BaseEntity {
    */
   @OneToMany(() => SessionEntity, (session) => session.device)
   sessions = new Collection<SessionEntity>(this);
-
-  // ========================================
-  // DEPRECATED/COMMENTED FIELDS
-  // ========================================
-  // These fields were replaced by the current implementation above
-  // and are kept for reference only.
-
-  // @Property({ fieldName: 'device_info', type: 'text', nullable: true })
-  // deviceInfo?: string;
-
-  // @Property({ fieldName: 'refresh_token', type: 'text', nullable: true })
-  // refreshToken?: string;
-
-  // @Property({ fieldName: 'user_agent', type: 'text', nullable: true })
-  // userAgent?: string;
-
-  // @Property({ fieldName: 'ip', nullable: true })
-  // ip?: string;
-
-  // @Property({ fieldName: 'is_trusted', nullable: true })
-  // isTrusted?: boolean;
-
-  // @Property({ fieldName: 'last_activity', nullable: true })
-  // lastActivity?: Date;
-
-  // @Property({ fieldName: 'created_on' })
-  // createdOn!: Date;
-
-  // @Property({ fieldName: 'expired_on', nullable: true })
-  // expiredOn?: Date;
-
-  // @Property({ fieldName: 'terminated_on', nullable: true })
-  // terminatedOn?: Date;
 }

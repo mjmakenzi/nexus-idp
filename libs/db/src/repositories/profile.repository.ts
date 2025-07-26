@@ -47,16 +47,9 @@ export class ProfileRepository extends EntityRepository<ProfileEntity> {
   //   return profile;
   // }
 
-  async createProfile(
-    user: UserEntity,
-    data?: Partial<ProfileEntity>,
-  ): Promise<ProfileEntity> {
-    const profile = this.create({
-      user,
-      ...data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+  async createProfile(dto: Partial<ProfileEntity>): Promise<ProfileEntity> {
+    const profile = this.create(dto as ProfileEntity);
+
     await this.em.persistAndFlush(profile);
     return profile;
   }

@@ -95,26 +95,8 @@ export class DeviceRepository extends EntityRepository<DeviceEntity> {
   /**
    * Create a new device
    */
-  async createDevice(deviceData: {
-    user: UserEntity;
-    deviceFingerprint: string;
-    deviceType: string;
-    deviceName?: string;
-    osName?: string;
-    osVersion?: string;
-    browserName?: string;
-    browserVersion?: string;
-    userAgent?: string;
-    lastIpAddress?: string;
-    isTrusted?: boolean;
-  }): Promise<DeviceEntity> {
-    const device = this.create({
-      ...deviceData,
-      lastSeenAt: new Date(),
-      isTrusted: deviceData.isTrusted ?? false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+  async createDevice(dto: Partial<DeviceEntity>): Promise<DeviceEntity> {
+    const device = this.create(dto as DeviceEntity);
     await this.em.persistAndFlush(device);
     return device;
   }
@@ -172,9 +154,9 @@ export class DeviceRepository extends EntityRepository<DeviceEntity> {
   /**
    * Update device name
    */
-  async updateDeviceName(deviceId: number, deviceName: string): Promise<void> {
-    await this.nativeUpdate({ id: deviceId }, { deviceName: deviceName });
-  }
+  // async updateDeviceName(deviceId: number, deviceName: string): Promise<void> {
+  //   await this.nativeUpdate({ id: deviceId }, { deviceName: deviceName });
+  // }
 
   /**
    * Delete device by ID

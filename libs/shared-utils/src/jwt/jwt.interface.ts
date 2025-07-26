@@ -14,6 +14,7 @@ export interface JwtPayload {
   iat: number; // Issued at
   exp?: number; // Expiration
   type: string; // Type
+  sessionId: string; // Session ID
   data: {
     user: {
       id: number;
@@ -34,6 +35,7 @@ export interface JwtRefreshPayload {
   exp?: number;
   type: string;
   sub: string;
+  sessionId: string;
   data: {
     user: {
       id: number;

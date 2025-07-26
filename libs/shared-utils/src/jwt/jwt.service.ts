@@ -11,7 +11,7 @@ export class JwtService {
     private readonly config: ConfigService,
   ) {}
 
-  async issueAccessToken(user: UserEntity): Promise<string> {
+  async issueAccessToken(user: UserEntity, sessionId: string): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = this.config.getOrThrow<string>('jwt.expiresIn');
 
@@ -19,6 +19,7 @@ export class JwtService {
       iat: now,
       type: 'access',
       sub: user.id.toString(),
+      sessionId,
       data: {
         user: {
           id: user.id,
@@ -39,7 +40,10 @@ export class JwtService {
     });
   }
 
-  async issueRefreshToken(user: UserEntity): Promise<string> {
+  async issueRefreshToken(
+    user: UserEntity,
+    sessionId: string,
+  ): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = this.config.getOrThrow<string>('jwt.refreshExpiresIn');
 
@@ -47,6 +51,7 @@ export class JwtService {
       iat: now,
       type: 'refresh',
       sub: user.id.toString(),
+      sessionId,
       data: {
         user: {
           id: user.id,
@@ -57,11 +62,11 @@ export class JwtService {
     return this.jwtService.sign(payload, { expiresIn });
   }
 
-  async verifyToken(refreshToken: string) {
-    return await this.jwtService.verify(refreshToken, {
-      secret: this.config.getOrThrow<string>('jwt.secret'),
-    });
-  }
+  // async verifyToken(refreshToken: string) {
+  //   return await this.jwtService.verify(refreshToken, {
+  //     secret: this.config.getOrThrow<string>('jwt.secret'),
+  //   });
+  // }
 
   /**
    * Parse expiration time string to seconds
