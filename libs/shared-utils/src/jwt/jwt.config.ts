@@ -5,6 +5,7 @@ export function jwtConfig(): IConfiguration {
   return {
     jwt: {
       secret: process.env.JWT_SECRET!,
+      refreshSecret: process.env.JWT_REFRESH_SECRET!,
       dataSecret: process.env.JWT_DATA_SECRET!,
       expiresIn: process.env.JWT_EXPIRES_IN!,
       refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN!,

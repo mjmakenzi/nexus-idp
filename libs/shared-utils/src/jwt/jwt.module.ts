@@ -10,17 +10,18 @@ import { JwtService } from './jwt.service';
     ConfigModule,
     CommonModule,
     AvatarModule,
-    NestJwtModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: (config: ConfigService) => ({
-        secret: config.getOrThrow<string>('jwt.secret'),
-        signOptions: {
-          expiresIn: config.getOrThrow<string>('jwt.expiresIn'),
-          issuer: config.getOrThrow<string>('jwt.iss'),
-        },
-      }),
-      inject: [ConfigService],
-    }),
+    // NestJwtModule.registerAsync({
+    //   imports: [ConfigModule],
+    //   useFactory: (config: ConfigService) => ({
+    //     secret: config.getOrThrow<string>('jwt.secret'),
+    //     signOptions: {
+    //       expiresIn: config.getOrThrow<string>('jwt.expiresIn'),
+    //       issuer: config.getOrThrow<string>('jwt.iss'),
+    //     },
+    //   }),
+    //   inject: [ConfigService],
+    // }),
+    NestJwtModule,
   ],
   providers: [JwtService],
   exports: [JwtService, NestJwtModule],

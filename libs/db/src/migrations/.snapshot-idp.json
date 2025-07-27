@@ -1441,6 +1441,26 @@
           "length": 6,
           "mappedType": "datetime"
         },
+        "blocked_at": {
+          "name": "blocked_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "block_reason": {
+          "name": "block_reason",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
         "user_agent": {
           "name": "user_agent",
           "type": "varchar(255)",
@@ -1629,6 +1649,16 @@
           "nullable": true,
           "length": 6,
           "mappedType": "datetime"
+        },
+        "termination_reason": {
+          "name": "termination_reason",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
         }
       },
       "name": "sessions",

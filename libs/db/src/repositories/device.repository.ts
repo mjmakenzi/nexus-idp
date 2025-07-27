@@ -1,5 +1,6 @@
 import { EntityRepository } from '@mikro-orm/postgresql';
 import { DeviceEntity } from '../entities/device.entity';
+import { SessionEntity } from '../entities/session.entity';
 import { UserEntity } from '../entities/user.entity';
 
 export class DeviceRepository extends EntityRepository<DeviceEntity> {
@@ -354,5 +355,11 @@ export class DeviceRepository extends EntityRepository<DeviceEntity> {
       page,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  async findDeviceBySession(sessionId: number): Promise<DeviceEntity | null> {
+    return this.findOne({
+      sessions: { id: sessionId },
+    });
   }
 }

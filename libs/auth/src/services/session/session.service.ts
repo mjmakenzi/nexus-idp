@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { CreateSessionDto } from '@app/auth/dto/session.dto';
 import {
   DeviceEntity,
   SessionEntity,
@@ -11,10 +10,7 @@ import { FastifyRequest } from 'fastify';
 
 @Injectable()
 export class SessionService {
-  constructor(
-    private readonly sessionRepo: SessionRepository,
-    private readonly commonService: CommonService,
-  ) {}
+  constructor(private readonly sessionRepo: SessionRepository) {}
 
   async createSession(
     user: UserEntity,
@@ -31,7 +27,7 @@ export class SessionService {
     return this.sessionRepo.createSession(createSessionDto);
   }
 
-  async updateSession(id: number, session: Partial<SessionEntity>) {
-    return this.sessionRepo.updateSession(id, session);
+  async updateSession(session: SessionEntity) {
+    return this.sessionRepo.updateSession(session.id, session);
   }
 }

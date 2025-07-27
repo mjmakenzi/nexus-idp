@@ -1,6 +1,18 @@
-import { IsDate, IsNotEmpty } from 'class-validator';
+import { SessionEntity } from '@app/db';
+import { UserEntity } from '@app/db';
+import { IsNotEmpty } from 'class-validator';
+import { FastifyRequest } from 'fastify';
 
 export class CreateSecurityEventDto {
+  @IsNotEmpty()
+  user!: UserEntity;
+
+  @IsNotEmpty()
+  req!: FastifyRequest;
+
+  @IsNotEmpty()
+  session!: SessionEntity;
+
   @IsNotEmpty()
   eventType!: string;
 
@@ -9,8 +21,4 @@ export class CreateSecurityEventDto {
 
   @IsNotEmpty()
   severity!: string;
-
-  @IsNotEmpty()
-  @IsDate()
-  occurredAt!: Date;
 }

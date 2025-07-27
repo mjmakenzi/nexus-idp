@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { OtpEntity, SessionEntity } from '@app/db';
+import { OtpEntity, RevokedTokenEntity, SessionEntity } from '@app/db';
 import { DevicesModule } from '@app/devices';
 import { SecurityModule } from '@app/security';
 import {
@@ -7,6 +7,7 @@ import {
   DiscourseModule,
   JwtModule,
   KavenegarModule,
+  LoggerModule,
   NodemailerModule,
   PassportModule,
 } from '@app/shared-utils';
@@ -15,11 +16,12 @@ import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { OtpService } from './services/OTP/otp.service';
+import { RevokedTokenService } from './services/revoked-token/revoked-token.service';
 import { SessionService } from './services/session/session.service';
 
 @Module({
   imports: [
-    MikroOrmModule.forFeature([OtpEntity, SessionEntity]),
+    MikroOrmModule.forFeature([OtpEntity, SessionEntity, RevokedTokenEntity]),
     UserModule,
     AppleModule,
     JwtModule,
@@ -29,8 +31,9 @@ import { SessionService } from './services/session/session.service';
     NodemailerModule,
     DevicesModule,
     SecurityModule,
+    LoggerModule,
   ],
-  providers: [AuthService, OtpService, SessionService],
+  providers: [AuthService, OtpService, SessionService, RevokedTokenService],
   exports: [AuthService],
   controllers: [AuthController],
 })

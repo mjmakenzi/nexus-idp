@@ -33,7 +33,7 @@ export class ProfileEntity extends BaseEntity {
   [OptionalProps]?:
     | 'firstName' // User's first/given name
     | 'lastName' // User's last/family name
-    | 'displayName' // Public display name (defaults to "کاربر تازه‌وارد")
+    | 'displayname' // Public display name (defaults to "کاربر تازه‌وارد")
     | 'avatarUrl' // Profile picture URL
     | 'bio' // User biography or description
     | 'socialLinks'; // Social media profile links

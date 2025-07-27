@@ -1,6 +1,10 @@
 import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { LoginPhoneDto, SendOtpPhoneDto } from '@app/auth';
-import { JwtRefreshAuthGuard, RcaptchaGuard } from '@app/shared-utils';
+import {
+  JwtAuthGuard,
+  JwtRefreshAuthGuard,
+  RcaptchaGuard,
+} from '@app/shared-utils';
 import { FastifyRequest } from 'fastify';
 import { AuthService } from './auth.service';
 
@@ -26,6 +30,12 @@ export class AuthController {
   @Post('v1/refresh-token')
   refreshToken(@Req() req: FastifyRequest) {
     return this.authService.refreshToken(req);
+  }
+
+  @UseGuards(JwtRefreshAuthGuard)
+  @Post('v1/logout')
+  logout(@Req() req: FastifyRequest) {
+    return this.authService.logout(req);
   }
 
   // @UseGuards(RcaptchaGuard)

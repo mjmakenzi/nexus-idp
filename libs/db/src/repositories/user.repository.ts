@@ -37,15 +37,9 @@ export class UserRepository extends EntityRepository<UserEntity> {
   /**
    * Create a new user
    */
-  async createUser(dto: CreateUserDto): Promise<UserEntity> {
-    const user = this.create({
-      username: dto.username || '',
-      passwordHash: dto.passwordHash || '',
-      passwordSalt: dto.passwordSalt || '',
-      countryCode: dto.countryCode,
-      phoneNumber: dto.phoneNumber,
-      phoneVerifiedAt: dto.phoneVerifiedAt,
-    });
+  async createUser(dto: Partial<UserEntity>): Promise<UserEntity> {
+    const user = this.create(dto as UserEntity);
+
     await this.em.persistAndFlush(user);
     return user;
   }

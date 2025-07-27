@@ -218,10 +218,13 @@ export class SessionEntity extends BaseEntity {
    * Nullable because active sessions don't have termination reasons
    * Used for security analysis and user support
    * Examples: 'User logout', 'Security policy violation', 'Session timeout'
-   * NOT USED
    */
-  // @Property({ name: 'termination_reason', nullable: true })
-  // terminationReason?: string;
+  @Property({
+    fieldName: 'termination_reason',
+    serializedName: 'termination_reason',
+    nullable: true,
+  })
+  terminationReason?: string;
 
   /**
    * Whether this session should be remembered across browser sessions

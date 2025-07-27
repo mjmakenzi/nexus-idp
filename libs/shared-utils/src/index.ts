@@ -22,6 +22,7 @@ export * from './nodemailer/nodemailer.config';
 export * from './nodemailer/nodemailer.module';
 export * from './nodemailer/nodemailer.service';
 export * from './logger/logger.module';
+export * from './logger/logger.service';
 export * from './apple/apple.module';
 export * from './apple/apple.service';
 export * from './apple/apple.config';

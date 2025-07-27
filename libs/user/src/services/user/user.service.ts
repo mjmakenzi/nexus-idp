@@ -16,7 +16,7 @@ export class UserService {
     const { passwordHash, passwordSalt } =
       await this.commonService.generateRandomPassword();
 
-    const createUserDto: CreateUserDto = {
+    const createUserDto: Partial<UserEntity> = {
       countryCode: dto.countryCode,
       phoneNumber: dto.phoneNumber,
       username: username,

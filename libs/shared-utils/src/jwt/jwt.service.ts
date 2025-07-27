@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
 import { UserEntity } from '@app/db';
-import { JwtPayload, JwtRefreshPayload } from './jwt.interface';
+import { IAccessPayload, IRefreshPayload } from './jwt.interface';
 
 @Injectable()
 export class JwtService {
@@ -15,7 +15,8 @@ export class JwtService {
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = this.config.getOrThrow<string>('jwt.expiresIn');
 
-    const payload: JwtPayload = {
+    const payload: IAccessPayload = {
+      iss: this.config.getOrThrow<string>('jwt.iss'),
       iat: now,
       type: 'access',
       sub: user.id.toString(),
@@ -28,7 +29,6 @@ export class JwtService {
           email: user.email,
           emailVerifiedAt: user.emailVerifiedAt,
           phoneVerifiedAt: user.phoneVerifiedAt,
-          status: user.status,
           createdAt: user.createdAt,
         },
       },
@@ -47,7 +47,8 @@ export class JwtService {
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = this.config.getOrThrow<string>('jwt.refreshExpiresIn');
 
-    const payload: JwtRefreshPayload = {
+    const payload: IRefreshPayload = {
+      iss: this.config.getOrThrow<string>('jwt.iss'),
       iat: now,
       type: 'refresh',
       sub: user.id.toString(),
@@ -59,14 +60,11 @@ export class JwtService {
       },
     };
 
-    return this.jwtService.sign(payload, { expiresIn });
+    return this.jwtService.sign(payload, {
+      secret: this.config.getOrThrow<string>('jwt.refreshSecret'),
+      expiresIn,
+    });
   }
-
-  // async verifyToken(refreshToken: string) {
-  //   return await this.jwtService.verify(refreshToken, {
-  //     secret: this.config.getOrThrow<string>('jwt.secret'),
-  //   });
-  // }
 
   /**
    * Parse expiration time string to seconds

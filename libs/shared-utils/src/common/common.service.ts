@@ -41,6 +41,14 @@ export class CommonService {
     return /^(?<browserName>[^\s\/]+)\/(?<browserVersion>[^\s]+)\s\((?<systemInfo>[^)]+)\)\s(?<engine>[^\s\/]+)\/(?<engineVersion>[^\s]+)\s\((?<engineDetails>[^)]+)\)\s(?<mainBrowser>[^\s\/]+)\/(?<mainBrowserVersion>[^\s]+)\s(?<extra>.+)$/;
   }
 
+  static getBrowserFingerprint(req: FastifyRequest): string {
+    const browserFingerprint = req.headers['x-browser-fingerprint'];
+    if (browserFingerprint && typeof browserFingerprint === 'string') {
+      return browserFingerprint;
+    }
+    return randomUUID();
+  }
+
   /**
    * Get the requester's IP address from the request headers or connection.
    */
@@ -109,7 +117,10 @@ export class CommonService {
   static getRequesterDeviceFingerprint(req: FastifyRequest): string {
     const ua = this.getRequesterUserAgent(req).toLowerCase();
     const deviceFingerprint = ua.match(this.getMobileTokenRegex());
-    return deviceFingerprint ? deviceFingerprint.groups?.uniqueId || '' : '';
+    if (deviceFingerprint) {
+      return deviceFingerprint.groups?.uniqueId || '';
+    }
+    return this.getBrowserFingerprint(req);
   }
 
   static getRequesterOsName(req: FastifyRequest): string {

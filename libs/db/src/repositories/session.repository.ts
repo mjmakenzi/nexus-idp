@@ -110,4 +110,92 @@ export class SessionRepository extends EntityRepository<SessionEntity> {
   async findByDevice(deviceId: number): Promise<SessionEntity[]> {
     return this.find({ device: deviceId });
   }
+
+  /**
+   * Find a session and user data related to it
+   * This is used to get the user data for the session
+   * and to populate the user data in the session
+   */
+  async findSessionAndUser(
+    sessionId: number,
+    userId: number,
+  ): Promise<SessionEntity | null> {
+    const session = await this.findOne(
+      {
+        id: sessionId,
+        user: userId,
+        terminatedAt: null,
+        expiresAt: { $gt: new Date() },
+      },
+      { populate: ['user.profile'] },
+    );
+    if (!session) return null;
+
+    return session;
+  }
+
+  /**
+   * Find a session with selected user and profile fields
+   * Returns a DTO with only the specified fields
+   */
+  async findSessionWithSelectedUserFields(
+    sessionId: number,
+    userId: number,
+  ): Promise<{
+    id: number;
+    accessTokenHash?: string;
+    refreshTokenHash?: string;
+    expiresAt: Date;
+    lastActivityAt?: Date;
+    terminatedAt?: Date;
+    terminationReason?: string;
+    user: {
+      id: number;
+      username: string;
+      email?: string;
+      emailVerifiedAt?: Date;
+      phoneVerifiedAt?: Date;
+      status: string;
+      createdAt?: Date;
+      profile?: {
+        displayname?: string;
+        avatarUrl?: string;
+      };
+    };
+  } | null> {
+    const session = await this.findOne(
+      {
+        id: sessionId,
+        user: userId,
+        terminatedAt: null,
+        expiresAt: { $gt: new Date() },
+      },
+      { populate: ['user.profile'] },
+    );
+
+    if (!session || !session.user) return null;
+
+    return {
+      id: session.id,
+      accessTokenHash: session.accessTokenHash,
+      refreshTokenHash: session.refreshTokenHash,
+      expiresAt: session.expiresAt,
+      lastActivityAt: session.lastActivityAt,
+      user: {
+        id: session.user.id,
+        username: session.user.username,
+        email: session.user.email,
+        emailVerifiedAt: session.user.emailVerifiedAt,
+        phoneVerifiedAt: session.user.phoneVerifiedAt,
+        status: session.user.status,
+        createdAt: session.user.createdAt,
+        profile: session.user.profile
+          ? {
+              displayname: session.user.profile.displayname,
+              avatarUrl: session.user.profile.avatarUrl,
+            }
+          : undefined,
+      },
+    };
+  }
 }

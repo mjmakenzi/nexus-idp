@@ -16,9 +16,17 @@ import {
   UserEntity,
 } from '@app/db';
 import { DevicesService } from '@app/devices';
-import { SecurityService } from '@app/security';
-import { FindRateLimitDto } from '@app/security/dto/rate-limit.dto';
-import { CommonService, JwtService, KavenegarService } from '@app/shared-utils';
+import {
+  CreateSecurityEventDto,
+  FindRateLimitDto,
+  SecurityService,
+} from '@app/security';
+import {
+  CommonService,
+  JwtService,
+  KavenegarService,
+  LoggerService,
+} from '@app/shared-utils';
 import {
   CreateUserDto,
   findUserByPhoneDto,
@@ -27,6 +35,7 @@ import {
 } from '@app/user';
 import { FastifyRequest } from 'fastify';
 import { OtpService } from './services/OTP/otp.service';
+import { RevokedTokenService } from './services/revoked-token/revoked-token.service';
 import { SessionService } from './services/session/session.service';
 
 @Injectable()
@@ -41,6 +50,8 @@ export class AuthService {
     private readonly sessionService: SessionService,
     private readonly deviceService: DevicesService,
     private readonly securityService: SecurityService,
+    private readonly revokedTokenService: RevokedTokenService,
+    private readonly logger: LoggerService,
   ) {}
 
   async sendOtpPhone(req: FastifyRequest, dto: SendOtpPhoneDto) {
@@ -73,7 +84,7 @@ export class AuthService {
 
     const otp = await this.otpService.createOtp(createOtpDto);
 
-    console.log('otp', otp);
+    this.logger.info('otp', { otp });
 
     const smsResult = await this.kavenegarService.sendOtpBySms(
       dto.phone_no,
@@ -156,22 +167,31 @@ export class AuthService {
     const session = await this.sessionService.createSession(user, device, req);
 
     // 6. Create security event
-    await this.securityService.createSecurityEvent(user, req, session);
+    const createSecurityEventDto: CreateSecurityEventDto = {
+      user: user,
+      req: req,
+      session: session,
+      eventType: 'login',
+      eventCategory: 'auth',
+      severity: 'low',
+    };
+    await this.securityService.createSecurityEvent(createSecurityEventDto);
 
     // 7. Issue tokens
     const accessToken = await this.jwtService.issueAccessToken(
       user,
       session.id.toString(),
     );
+
     const refreshToken = await this.jwtService.issueRefreshToken(
       user,
       session.id.toString(),
     );
 
-    // 8. Update session with tokens
+    // 8. Update refresh token in session
     session.accessTokenHash = await this.commonService.hash(accessToken);
     session.refreshTokenHash = await this.commonService.hash(refreshToken);
-    await this.sessionService.updateSession(session.id, session);
+    await this.sessionService.updateSession(session);
 
     return {
       status: 'success',
@@ -189,6 +209,7 @@ export class AuthService {
   async refreshToken(req: FastifyRequest) {
     try {
       const session = (req as any).user;
+
       const accessToken = await this.jwtService.issueAccessToken(
         session.user,
         session.id.toString(),
@@ -199,7 +220,19 @@ export class AuthService {
       );
       session.accessTokenHash = await this.commonService.hash(accessToken);
       session.refreshTokenHash = await this.commonService.hash(newRefreshToken);
-      await this.sessionService.updateSession(session.id, session);
+      session.lastActivityAt = new Date();
+      session.expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30); // 30 days
+      await this.sessionService.updateSession(session);
+      const createSecurityEventDto: CreateSecurityEventDto = {
+        user: session.user,
+        req: req,
+        session: session,
+        eventType: 'refresh',
+        eventCategory: 'auth',
+        severity: 'info',
+      };
+      await this.securityService.createSecurityEvent(createSecurityEventDto);
+
       return {
         status: 'success',
         data: {
@@ -211,6 +244,28 @@ export class AuthService {
     } catch (error) {
       throw new UnauthorizedException('Invalid refresh token');
     }
+  }
+
+  async logout(req: FastifyRequest) {
+    const session = (req as any).user;
+    session.terminatedAt = new Date();
+    session.terminationReason = 'logout';
+    await this.sessionService.updateSession(session);
+    await this.deviceService.updateDevice(session.device);
+    await this.revokedTokenService.createRevokedToken(session);
+    const createSecurityEventDto: CreateSecurityEventDto = {
+      user: session.user,
+      req: req,
+      session: session,
+      eventType: 'logout',
+      eventCategory: 'auth',
+      severity: 'info',
+    };
+    await this.securityService.createSecurityEvent(createSecurityEventDto);
+    return {
+      status: 'success',
+      message: 'You have been successfully logged out!',
+    };
   }
 
   // async googleLogin(dto: GoogleLoginDto) {

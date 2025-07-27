@@ -1,6 +1,7 @@
 export interface IConfiguration {
   jwt: {
     secret: string;
+    refreshSecret: string;
     dataSecret: string;
     expiresIn: string;
     refreshExpiresIn: string;
@@ -8,9 +9,9 @@ export interface IConfiguration {
   };
 }
 
-export interface JwtPayload {
+export interface IAccessPayload {
   sub: string; // User ID
-  // iss: string; // Issuer
+  iss: string; // Issuer
   iat: number; // Issued at
   exp?: number; // Expiration
   type: string; // Type
@@ -23,14 +24,14 @@ export interface JwtPayload {
       email?: string;
       emailVerifiedAt?: Date;
       phoneVerifiedAt?: Date;
-      status: string;
+      // status: string;
       createdAt?: Date;
     };
   };
 }
 
-export interface JwtRefreshPayload {
-  // iss: string;
+export interface IRefreshPayload {
+  iss: string;
   iat: number;
   exp?: number;
   type: string;

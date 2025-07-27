@@ -4,7 +4,7 @@ import { OtpEntity } from '../entities/otp.entity';
 
 export class OtpRepository extends EntityRepository<OtpEntity> {
   async createOtp(dto: CreateOtpDto, otpHash: string): Promise<OtpEntity> {
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes,
+    const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes,
     const otpEntity = await this.create({
       user: dto.user,
       identifier: dto.identifier,
@@ -77,7 +77,7 @@ export class OtpRepository extends EntityRepository<OtpEntity> {
   // }
 
   async findByExpiredOtp(dto: FindOtpDto): Promise<OtpEntity | null> {
-    const expiresAt = new Date(Date.now() - 5 * 60 * 1000); // 5 minutes,
+    const expiresAt = new Date(Date.now() - 2 * 60 * 1000); // 2 minutes,
     return await this.findOne(
       {
         identifier: dto.identifier,

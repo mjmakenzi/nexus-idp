@@ -178,18 +178,24 @@ export class DeviceEntity extends BaseEntity {
   /**
    * Timestamp when this device was blocked/blacklisted.
    * Used for security incident tracking and device management.
-   * NOT USED
    */
-  // @Property({ name: 'blocked_at', nullable: true })
-  // blockedAt?: Date;
+  @Property({
+    fieldName: 'blocked_at',
+    serializedName: 'blocked_at',
+    nullable: true,
+  })
+  blockedAt?: Date;
 
   /**
    * Reason for blocking this device (security violation, policy breach, etc.).
    * Used for security audits and incident response.
-   * NOT USED
    */
-  // @Property({ name: 'block_reason', nullable: true })
-  // blockReason?: string;
+  @Property({
+    fieldName: 'block_reason',
+    serializedName: 'block_reason',
+    nullable: true,
+  })
+  blockReason?: string;
 
   /**
    * User agent string from the browser/client.

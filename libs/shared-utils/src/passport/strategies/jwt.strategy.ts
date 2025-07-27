@@ -1,15 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { UserRepository } from '@app/db';
-import { JwtPayload } from '@app/shared-utils';
+import { SessionRepository } from '@app/db';
+import { IAccessPayload } from '@app/shared-utils';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     configService: ConfigService,
-    private readonly userRepo: UserRepository,
+    private readonly sessionRepo: SessionRepository,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -18,7 +22,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload) {
-    return await this.userRepo.getUserById(Number(payload.sub));
+  async validate(payload: IAccessPayload) {
+    const userId = Number(payload.sub);
+    const sessionId = Number(payload.sessionId);
+
+    if (isNaN(userId) || isNaN(sessionId)) {
+      throw new BadRequestException('Invalid token payload');
+    }
+
+    const session = await this.sessionRepo.findSessionAndUser(
+      sessionId,
+      userId,
+    );
+
+    if (!session) {
+      throw new UnauthorizedException('Session is invalid');
+    }
+
+    // TODO: Optionally update lastActivityAt or cache in memory
+    return session.user;
   }
 }
