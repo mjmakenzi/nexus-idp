@@ -1572,14 +1572,15 @@
           "nullable": true,
           "mappedType": "integer"
         },
-        "access_token_hash": {
-          "name": "access_token_hash",
-          "type": "text",
+        "session_id": {
+          "name": "session_id",
+          "type": "varchar(255)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": true,
-          "mappedType": "text"
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
         },
         "refresh_token_hash": {
           "name": "refresh_token_hash",
@@ -1640,6 +1641,16 @@
           "length": 6,
           "mappedType": "datetime"
         },
+        "max_expires_at": {
+          "name": "max_expires_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "mappedType": "datetime"
+        },
         "terminated_at": {
           "name": "terminated_at",
           "type": "timestamptz",
@@ -1664,6 +1675,16 @@
       "name": "sessions",
       "schema": "public",
       "indexes": [
+        {
+          "columnNames": [
+            "session_id"
+          ],
+          "composite": false,
+          "keyName": "sessions_session_id_unique",
+          "constraint": true,
+          "primary": false,
+          "unique": true
+        },
         {
           "keyName": "sessions_pkey",
           "columnNames": [

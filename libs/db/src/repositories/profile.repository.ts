@@ -10,6 +10,65 @@ export class ProfileRepository extends EntityRepository<ProfileEntity> {
     return await this.findOne({ user: { id: user.id } });
   }
 
+  /** Get user Profile with only user's email and phone number (returns plain object) */
+  async getProfileWithUserRelations(user: UserEntity): Promise<
+    | (Pick<
+        ProfileEntity,
+        | 'id'
+        | 'firstName'
+        | 'lastName'
+        | 'displayname'
+        | 'avatarUrl'
+        | 'bio'
+        | 'createdAt'
+        | 'updatedAt'
+      > & {
+        email: string | undefined;
+        phoneNumber: string | undefined;
+        firstName: string | undefined;
+        lastName: string | undefined;
+        displayname: string | undefined;
+        avatarUrl: string | undefined;
+        bio: string | undefined;
+        createdAt: Date | undefined;
+        updatedAt: Date | undefined;
+      })
+    | null
+  > {
+    const result = await this.findOne(
+      { user: { id: user.id } },
+      {
+        populate: ['user'],
+        fields: [
+          'id',
+          'user.email',
+          'user.phoneNumber',
+          'firstName',
+          'lastName',
+          'displayname',
+          'avatarUrl',
+          'bio',
+          'createdAt',
+          'updatedAt',
+        ],
+      },
+    );
+    if (!result) return null;
+    // Return only the selected fields as a plain object, not as UserEntity
+    return {
+      id: result.id,
+      email: result.user.email,
+      phoneNumber: result.user.phoneNumber,
+      firstName: result.firstName,
+      lastName: result.lastName,
+      displayname: result.displayname,
+      avatarUrl: result.avatarUrl,
+      bio: result.bio,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt,
+    };
+  }
+
   /**
    * Create or update user profile
    */

@@ -6,6 +6,7 @@ import {
   UserEntity,
 } from '@app/db';
 import { CommonService } from '@app/shared-utils';
+import { randomUUID } from 'crypto';
 import { FastifyRequest } from 'fastify';
 
 @Injectable()
@@ -20,6 +21,7 @@ export class SessionService {
     const createSessionDto: Partial<SessionEntity> = {
       user: user,
       device: device,
+      sessionId: randomUUID(),
       ipAddress: CommonService.getRequesterIpAddress(req),
       userAgent: CommonService.getRequesterUserAgent(req),
       lastActivityAt: new Date(),

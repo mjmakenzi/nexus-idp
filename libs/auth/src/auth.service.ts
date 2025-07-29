@@ -178,18 +178,14 @@ export class AuthService {
     await this.securityService.createSecurityEvent(createSecurityEventDto);
 
     // 7. Issue tokens
-    const accessToken = await this.jwtService.issueAccessToken(
-      user,
-      session.id.toString(),
-    );
+    const accessToken = await this.jwtService.issueAccessToken(user, session);
 
-    const refreshToken = await this.jwtService.issueRefreshToken(
+    const { refreshToken } = await this.jwtService.issueRefreshToken(
       user,
-      session.id.toString(),
+      session,
     );
 
     // 8. Update refresh token in session
-    session.accessTokenHash = await this.commonService.hash(accessToken);
     session.refreshTokenHash = await this.commonService.hash(refreshToken);
     await this.sessionService.updateSession(session);
 
@@ -197,7 +193,7 @@ export class AuthService {
       status: 'success',
       data: {
         user_id: String(user.id),
-        session_id: String(session.id),
+        session_id: String(session.sessionId),
         access_token: accessToken,
         token_type: 'bearer',
         refresh_token: refreshToken,
@@ -212,26 +208,25 @@ export class AuthService {
 
       const accessToken = await this.jwtService.issueAccessToken(
         session.user,
-        session.id.toString(),
+        session,
       );
-      const newRefreshToken = await this.jwtService.issueRefreshToken(
-        session.user,
-        session.id.toString(),
-      );
-      session.accessTokenHash = await this.commonService.hash(accessToken);
-      session.refreshTokenHash = await this.commonService.hash(newRefreshToken);
+      const { refreshToken: newRefreshToken, expiresIn } =
+        await this.jwtService.issueRefreshToken(session.user, session);
+      session.expiresAt = new Date(Date.now() + expiresIn * 1000); // 15 days
       session.lastActivityAt = new Date();
-      session.expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30); // 30 days
+      // session.userAgent = CommonService.getRequesterUserAgent(req);
+      // session.ipAddress = CommonService.getRequesterIpAddress(req);
+      session.refreshTokenHash = await this.commonService.hash(newRefreshToken);
       await this.sessionService.updateSession(session);
-      const createSecurityEventDto: CreateSecurityEventDto = {
-        user: session.user,
-        req: req,
-        session: session,
-        eventType: 'refresh',
-        eventCategory: 'auth',
-        severity: 'info',
-      };
-      await this.securityService.createSecurityEvent(createSecurityEventDto);
+      // const createSecurityEventDto: CreateSecurityEventDto = {
+      //   user: session.user,
+      //   req: req,
+      //   session: session,
+      //   eventType: 'refresh',
+      //   eventCategory: 'auth',
+      //   severity: 'info',
+      // };
+      // await this.securityService.createSecurityEvent(createSecurityEventDto);
 
       return {
         status: 'success',

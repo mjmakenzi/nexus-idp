@@ -24,19 +24,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: IAccessPayload) {
     const userId = Number(payload.sub);
-    const sessionId = Number(payload.sessionId);
+    const sessionId = payload.sessionId;
 
-    if (isNaN(userId) || isNaN(sessionId)) {
+    if (isNaN(userId) || !sessionId) {
       throw new BadRequestException('Invalid token payload');
     }
 
-    const session = await this.sessionRepo.findSessionAndUser(
+    const session = await this.sessionRepo.findSessionWithUser(
       sessionId,
       userId,
     );
 
     if (!session) {
-      throw new UnauthorizedException('Session is invalid');
+      throw new UnauthorizedException('Session Terminated. Please re-login.');
     }
 
     // TODO: Optionally update lastActivityAt or cache in memory

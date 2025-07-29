@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -24,17 +25,19 @@ export class JwtRefreshStrategy extends PassportStrategy(
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: configService.getOrThrow<string>('jwt.refreshSecret'),
+      ignoreExpiration: false,
       passReqToCallback: true,
     });
   }
 
   async validate(request: Request, payload: IRefreshPayload) {
+    const now = new Date();
     // Validate that sessionId exists and is a valid number
-    if (!payload.sessionId || isNaN(Number(payload.sessionId))) {
+    if (!payload.sessionId || typeof payload.sessionId !== 'string') {
       throw new UnauthorizedException('Invalid session ID in refresh token');
     }
 
-    const sessionId = Number(payload.sessionId);
+    const sessionId = payload.sessionId;
     const userId = Number(payload.sub);
 
     // Validate that user ID is also valid
@@ -42,13 +45,21 @@ export class JwtRefreshStrategy extends PassportStrategy(
       throw new UnauthorizedException('Invalid user ID in refresh token');
     }
 
-    const session = await this.sessionRepo.findSessionAndUser(
+    const session = await this.sessionRepo.findSessionWithUser(
       sessionId,
       userId,
     );
 
     if (!session) {
-      throw new UnauthorizedException('Session not found');
+      throw new UnauthorizedException('Session Terminated. Please re-login.');
+    }
+
+    // Check if session is expired (more than 15 days or 90 days)
+    if (now > session.expiresAt || now > session.maxExpiresAt) {
+      session.terminatedAt = now;
+      session.terminationReason = 'session_expired';
+      await this.sessionRepo.updateSession(session.id, session);
+      throw new UnauthorizedException('Session expired. Please re-login.');
     }
 
     const refreshToken = ExtractJwt.fromAuthHeaderAsBearerToken()(request);

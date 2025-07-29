@@ -1,12 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import {
-  DeviceEntity,
-  DeviceRepository,
-  SessionEntity,
-  UserEntity,
-} from '@app/db';
+import { DeviceEntity, DeviceRepository, UserEntity } from '@app/db';
 import { CommonService } from '@app/shared-utils';
-import { randomUUID } from 'crypto';
 import { FastifyRequest } from 'fastify';
 
 @Injectable()
@@ -33,6 +27,7 @@ export class DevicesService {
       browserVersion: CommonService.getRequesterBrowserVersion(req),
       lastSeenAt: new Date(),
     };
+
     return this.deviceRepo.createDevice(createDeviceDto);
   }
 

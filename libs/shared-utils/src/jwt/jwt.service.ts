@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
-import { UserEntity } from '@app/db';
+import { SessionEntity, UserEntity } from '@app/db';
 import { IAccessPayload, IRefreshPayload } from './jwt.interface';
 
 @Injectable()
@@ -11,7 +11,12 @@ export class JwtService {
     private readonly config: ConfigService,
   ) {}
 
-  async issueAccessToken(user: UserEntity, sessionId: string): Promise<string> {
+  async issueAccessToken(
+    user: UserEntity,
+    session: SessionEntity,
+  ): Promise<string> {
+    console.log(session);
+
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = this.config.getOrThrow<string>('jwt.expiresIn');
 
@@ -20,7 +25,7 @@ export class JwtService {
       iat: now,
       type: 'access',
       sub: user.id.toString(),
-      sessionId,
+      sessionId: session.sessionId,
       data: {
         user: {
           id: user.id,
@@ -42,8 +47,8 @@ export class JwtService {
 
   async issueRefreshToken(
     user: UserEntity,
-    sessionId: string,
-  ): Promise<string> {
+    session: SessionEntity,
+  ): Promise<{ refreshToken: string; expiresIn: number }> {
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = this.config.getOrThrow<string>('jwt.refreshExpiresIn');
 
@@ -52,7 +57,7 @@ export class JwtService {
       iat: now,
       type: 'refresh',
       sub: user.id.toString(),
-      sessionId,
+      sessionId: session.sessionId,
       data: {
         user: {
           id: user.id,
@@ -60,10 +65,13 @@ export class JwtService {
       },
     };
 
-    return this.jwtService.sign(payload, {
-      secret: this.config.getOrThrow<string>('jwt.refreshSecret'),
-      expiresIn,
-    });
+    return {
+      refreshToken: this.jwtService.sign(payload, {
+        secret: this.config.getOrThrow<string>('jwt.refreshSecret'),
+        expiresIn,
+      }),
+      expiresIn: this.parseExpirationTime(expiresIn),
+    };
   }
 
   /**

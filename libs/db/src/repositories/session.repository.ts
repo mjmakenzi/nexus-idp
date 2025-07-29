@@ -47,13 +47,6 @@ export class SessionRepository extends EntityRepository<SessionEntity> {
   }
 
   /**
-   * Find a session by its access token hash
-   */
-  async findByAccessTokenHash(hash: string): Promise<SessionEntity | null> {
-    return this.findOne({ accessTokenHash: hash, terminatedAt: null });
-  }
-
-  /**
    * Find a session by its refresh token hash
    */
   async findByRefreshTokenHash(hash: string): Promise<SessionEntity | null> {
@@ -116,16 +109,16 @@ export class SessionRepository extends EntityRepository<SessionEntity> {
    * This is used to get the user data for the session
    * and to populate the user data in the session
    */
-  async findSessionAndUser(
-    sessionId: number,
+  async findSessionWithUser(
+    sessionId: string,
     userId: number,
   ): Promise<SessionEntity | null> {
     const session = await this.findOne(
       {
-        id: sessionId,
+        sessionId: sessionId,
         user: userId,
         terminatedAt: null,
-        expiresAt: { $gt: new Date() },
+        terminationReason: null,
       },
       { populate: ['user.profile'] },
     );
@@ -139,11 +132,10 @@ export class SessionRepository extends EntityRepository<SessionEntity> {
    * Returns a DTO with only the specified fields
    */
   async findSessionWithSelectedUserFields(
-    sessionId: number,
+    sessionId: string,
     userId: number,
   ): Promise<{
     id: number;
-    accessTokenHash?: string;
     refreshTokenHash?: string;
     expiresAt: Date;
     lastActivityAt?: Date;
@@ -165,10 +157,10 @@ export class SessionRepository extends EntityRepository<SessionEntity> {
   } | null> {
     const session = await this.findOne(
       {
-        id: sessionId,
+        sessionId: sessionId,
         user: userId,
         terminatedAt: null,
-        expiresAt: { $gt: new Date() },
+        terminationReason: null,
       },
       { populate: ['user.profile'] },
     );
@@ -177,7 +169,6 @@ export class SessionRepository extends EntityRepository<SessionEntity> {
 
     return {
       id: session.id,
-      accessTokenHash: session.accessTokenHash,
       refreshTokenHash: session.refreshTokenHash,
       expiresAt: session.expiresAt,
       lastActivityAt: session.lastActivityAt,

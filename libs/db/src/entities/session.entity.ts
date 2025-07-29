@@ -82,22 +82,23 @@ export class SessionEntity extends BaseEntity {
    * Used in JWT tokens and session validation logic
    * NOT USED
    */
-  // @Property({ name: 'session_id', unique: true })
-  // sessionId!: string;
+  @Property({ fieldName: 'session_id', unique: true })
+  sessionId!: string;
 
   /**
    * Hashed access token for this session (optional)
    * Stored as hash for security - original token not persisted
    * Nullable because some sessions may not use access tokens
    * Used for token validation and session security verification
+   * NOT USED
    */
-  @Property({
-    fieldName: 'access_token_hash',
-    serializedName: 'access_token_hash',
-    type: 'text',
-    nullable: true,
-  })
-  accessTokenHash?: string;
+  // @Property({
+  //   fieldName: 'access_token_hash',
+  //   serializedName: 'access_token_hash',
+  //   type: 'text',
+  //   nullable: true,
+  // })
+  // accessTokenHash?: string;
 
   /**
    * Hashed refresh token for this session (optional)
@@ -195,9 +196,23 @@ export class SessionEntity extends BaseEntity {
     fieldName: 'expires_at',
     serializedName: 'expires_at',
     type: 'datetime',
-    onCreate: () => new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days
+    onCreate: () => new Date(Date.now() + 1000 * 60 * 60 * 24 * 15), // 15 days
   })
   expiresAt!: Date;
+
+  /**
+   * Timestamp when the session expires
+   * Set during session creation based on session policy
+   * Used for automatic session cleanup and expiration enforcement
+   * Required field - all sessions must have an max expiration time
+   */
+  @Property({
+    fieldName: 'max_expires_at',
+    serializedName: 'max_expires_at',
+    type: 'datetime',
+    onCreate: () => new Date(Date.now() + 1000 * 60 * 60 * 24 * 90), // 90 days
+  })
+  maxExpiresAt!: Date;
 
   /**
    * Timestamp when the session was terminated (optional)

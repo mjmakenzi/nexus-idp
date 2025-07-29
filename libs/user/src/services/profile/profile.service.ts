@@ -13,6 +13,6 @@ export class ProfileService {
   }
 
   async getProfile(user: UserEntity) {
-    return this.profileRepo.getUserProfile(user);
+    return this.profileRepo.getProfileWithUserRelations(user);
   }
 }
