@@ -1,41 +1,183 @@
 import {
   BaseEntity,
+  Cascade,
   Collection,
   Entity,
   EntityRepositoryType,
   Enum,
+  Index,
   OneToMany,
   OneToOne,
   OptionalProps,
   PrimaryKey,
   Property,
-  Unique,
 } from '@mikro-orm/core';
 import { UserRepository } from '../repositories/user.repository';
 import { ApiKeyEntity } from './api-key.entity';
+import { AuditLogEntity } from './audit-log.entity';
 import { DeviceEntity } from './device.entity';
 import { FederatedIdentityEntity } from './federated-identity.entity';
+import { OtpEntity } from './otp.entity';
 import { ProfileEntity } from './profile.entity';
+import { RevokedTokenEntity } from './revoked-token.entity';
 import { SecurityEventEntity } from './security-event.entity';
 import { SessionEntity } from './session.entity';
 import { UserRoleEntity } from './user-role.entity';
 
 export enum UserStatus {
   ACTIVE = 'active',
-  INACTIVE = 'inactive',
+  SUSPENDED = 'suspended',
   PENDING = 'pending',
+  DELETED = 'deleted',
 }
 
 /**
  * User entity representing a user account in the identity provider system.
  *
- * This entity handles:
- * - Core user identification (username, email, phone)
- * - Authentication credentials (password, MFA, federated identities)
- * - Account status and verification states
- * - Security tracking (login attempts, locks, sessions)
- * - Compliance tracking (terms acceptance, privacy consent)
- * - Audit trail (creation, updates, deletion)
+ * This entity is designed for high-performance identity management with the following
+ * efficiency categories and use cases:
+ *
+ * ========================================
+ * EFFICIENCY CATEGORIES
+ * ========================================
+ *
+ * 1. CRITICAL PERFORMANCE FIELDS (Indexed)
+ *    - Used in high-frequency authentication and lookup operations
+ *    - Optimized with database indexes for sub-millisecond response times
+ *    - Fields: username, email_normalized, phone, status, last_login_at, deleted_at
+ *
+ * 2. AUTHENTICATION FIELDS (Frequently Accessed)
+ *    - Used in every login/authentication attempt
+ *    - Includes password verification, MFA, and session management
+ *    - Fields: password_hash, password_salt, totp_secret, mfa_enabled, mfa_method
+ *
+ * 3. VERIFICATION FIELDS (Moderate Frequency)
+ *    - Used during account setup and periodic verification
+ *    - Includes email/phone verification and identity validation
+ *    - Fields: email_verified_at, phone_verified_at, identity_verified_at
+ *
+ * 4. SECURITY MONITORING FIELDS (Low Frequency, High Impact)
+ *    - Used for security analysis, threat detection, and compliance
+ *    - Includes login attempts, locks, and security events
+ *    - Fields: failed_login_attempts, locked_until, last_login_ip
+ *
+ * 5. COMPLIANCE FIELDS (Audit Requirements)
+ *    - Used for legal compliance and audit trails
+ *    - Includes terms acceptance, privacy consent, and audit timestamps
+ *    - Fields: terms_accepted_at, privacy_accepted_at, created_at, updated_at
+ *
+ * 6. RELATIONSHIP FIELDS (Data Integrity)
+ *    - Used for maintaining referential integrity and data relationships
+ *    - Includes foreign keys and relationship collections
+ *    - Fields: All @OneToMany and @OneToOne relationships
+ *
+ * ========================================
+ * USE CASES BY CATEGORY
+ * ========================================
+ *
+ * CRITICAL PERFORMANCE USE CASES:
+ * - User authentication (username/email/phone lookup)
+ * - Account status verification (active/suspended checks)
+ * - Soft delete filtering (exclude deleted users)
+ * - User activity analysis (last login queries)
+ *
+ * AUTHENTICATION USE CASES:
+ * - Password verification during login
+ * - Multi-factor authentication (TOTP, backup codes)
+ * - Session management and device tracking
+ * - Password change tracking and versioning
+ *
+ * VERIFICATION USE CASES:
+ * - Email verification workflow
+ * - Phone number verification (SMS OTP)
+ * - Identity verification (KYC processes)
+ * - Account activation and setup completion
+ *
+ * SECURITY MONITORING USE CASES:
+ * - Brute force attack detection
+ * - Account lockout management
+ * - Security event correlation
+ * - IP-based security policies
+ *
+ * COMPLIANCE USE CASES:
+ * - GDPR compliance (privacy consent tracking)
+ * - Terms of service acceptance
+ * - Audit trail maintenance
+ * - Data retention policies
+ *
+ * RELATIONSHIP USE CASES:
+ * - Role-based access control (RBAC)
+ * - OAuth/SSO integration
+ * - Device management and trust
+ * - API key management
+ * - Security event logging
+ *
+ * ========================================
+ * PERFORMANCE OPTIMIZATIONS
+ * ========================================
+ *
+ * Database Indexes:
+ * - idx_email_normalized: Fast email-based lookups
+ * - idx_phone: Fast phone-based authentication
+ * - idx_status: Efficient status filtering
+ * - idx_last_login: User activity queries
+ * - idx_deleted_at: Soft delete filtering
+ *
+ * Unique Constraints:
+ * - username: Prevents duplicate usernames
+ * - email_normalized: Prevents duplicate emails (case-insensitive)
+ * - phone: Prevents duplicate phone numbers
+ *
+ * Default Values:
+ * - status: 'pending' for new accounts
+ * - mfa_enabled: false for new accounts
+ * - failed_login_attempts: 0 for new accounts
+ * - password_version: 1 for new accounts
+ *
+ * ========================================
+ * SECURITY CONSIDERATIONS
+ * ========================================
+ *
+ * Password Security:
+ * - password_hash: Bcrypt/Argon2 hashed passwords
+ * - password_salt: Unique salt per user
+ * - password_version: Tracks password changes for session invalidation
+ *
+ * Multi-Factor Authentication:
+ * - totp_secret: Time-based one-time password secret
+ * - backup_codes: JSON array of backup codes
+ * - mfa_enabled: Boolean flag for MFA status
+ * - mfa_method: Type of MFA (totp, sms, email)
+ *
+ * Account Security:
+ * - failed_login_attempts: Tracks failed attempts
+ * - locked_until: Temporary account lockouts
+ * - last_login_ip: IP tracking for security analysis
+ *
+ * ========================================
+ * RELATIONSHIPS OVERVIEW
+ * ========================================
+ *
+ * Core Relationships:
+ * - profile: One-to-one with ProfileEntity (extended user data)
+ * - federatedIdentities: One-to-many with FederatedIdentityEntity (OAuth/SSO)
+ * - userRoles: One-to-many with UserRoleEntity (RBAC)
+ * - sessions: One-to-many with SessionEntity (active sessions)
+ * - devices: One-to-many with DeviceEntity (trusted devices)
+ * - apiKeys: One-to-many with ApiKeyEntity (API access)
+ * - securityEvents: One-to-many with SecurityEventEntity (audit trail)
+ *
+ * Relationship Purposes:
+ * - profile: Stores non-critical user data (name, avatar, preferences) - CASCADE DELETE
+ * - federatedIdentities: Enables OAuth/SSO login methods
+ * - userRoles: Implements role-based access control - CASCADE DELETE
+ * - sessions: Manages user login sessions across devices - CASCADE DELETE
+ * - devices: Tracks and manages trusted devices - CASCADE DELETE
+ * - otps: One-time password codes for authentication - CASCADE DELETE
+ * - apiKeys: Provides programmatic access to the system - CASCADE DELETE
+ * - securityEvents: Maintains security audit trail - SET NULL ON DELETE
+ * - revokedTokens: Token blacklisting and security audit - SET NULL ON DELETE
+ * - auditLogs: Activity tracking and compliance audit - SET NULL ON DELETE
  */
 @Entity({ tableName: 'users', repository: () => UserRepository })
 export class UserEntity extends BaseEntity {
@@ -67,285 +209,288 @@ export class UserEntity extends BaseEntity {
     | 'status'; // Account status (active, suspended, etc.)
 
   /** Unique identifier for the user account */
-  @PrimaryKey()
-  id!: number;
+  @PrimaryKey({ type: 'bigint', autoincrement: true })
+  id!: bigint;
 
-  /**
-   * Unique username for login and display purposes.
-   * Must be unique across all users in the system.
-   */
-  @Property({ fieldName: 'username', serializedName: 'username' })
-  @Unique()
+  @Property({
+    fieldName: 'username',
+    serializedName: 'username',
+    type: 'varchar',
+    length: 50,
+    unique: true,
+  })
   username!: string;
 
-  /**
-   * Primary email address for the user account.
-   * Used for login, notifications, and account recovery.
-   * Must be unique across all users.
-   */
-  @Property({ fieldName: 'email', serializedName: 'email' })
-  @Unique()
-  email?: string;
-
-  /**
-   * Normalized email address (lowercase, trimmed) for consistent lookups.
-   * Used for case-insensitive email searches and comparisons.
-   */
   @Property({
     fieldName: 'email_normalized',
     serializedName: 'email_normalized',
+    type: 'varchar',
+    length: 255,
+    unique: true,
   })
-  @Unique()
+  @Index({ name: 'idx_email_normalized' })
   emailNormalized?: string;
 
-  /**
-   * Phone number for SMS-based authentication and notifications.
-   * Optional - not all users provide phone numbers.
-   */
+  @Property({
+    fieldName: 'email',
+    serializedName: 'email',
+    type: 'varchar',
+    length: 255,
+    unique: true,
+  })
+  email?: string;
+
+  @Property({
+    fieldName: 'phone',
+    serializedName: 'phone',
+    nullable: true,
+    type: 'varchar',
+    length: 20,
+  })
+  @Index({ name: 'idx_phone' })
+  phone?: string;
+
   @Property({
     fieldName: 'phone_number',
     serializedName: 'phone_number',
     nullable: true,
+    type: 'varchar',
+    length: 20,
   })
   phoneNumber?: string;
 
-  /**
-   * Country code for international phone number formatting.
-   * Used with phoneNumber for SMS operations.
-   */
   @Property({
     fieldName: 'country_code',
     serializedName: 'country_code',
     nullable: true,
+    type: 'char',
+    length: 2,
   })
   countryCode?: string;
 
-  /**
-   * External system identifier for integration purposes.
-   * Used when syncing users from external systems.
-   * NOT USED
-   */
-  // @Property({ name: 'external_id', nullable: true })
-  // externalId?: string;
+  @Property({
+    fieldName: 'external_id',
+    serializedName: 'external_id',
+    nullable: true,
+    type: 'varchar',
+    length: 100,
+  })
+  externalId?: string;
 
-  /**
-   * Bcrypt-hashed password for local authentication.
-   * Null for users who only authenticate via OAuth/SSO.
-   */
-  @Property({ fieldName: 'password_hash', serializedName: 'password_hash' })
+  @Property({
+    fieldName: 'password_hash',
+    serializedName: 'password_hash',
+    type: 'varchar',
+    length: 255,
+    nullable: false,
+  })
   passwordHash!: string;
 
-  /**
-   * Salt used for password hashing to prevent rainbow table attacks.
-   * Generated uniquely for each password.
-   */
-  @Property({ fieldName: 'password_salt', serializedName: 'password_salt' })
+  @Property({
+    fieldName: 'password_salt',
+    serializedName: 'password_salt',
+    type: 'varchar',
+    length: 255,
+    nullable: false,
+  })
   passwordSalt!: string;
 
-  /**
-   * Timestamp when the password was last changed.
-   * Used for password expiration policies and security audits.
-   */
   @Property({
     fieldName: 'password_changed_at',
     serializedName: 'password_changed_at',
     nullable: true,
+    type: 'timestamp',
   })
   passwordChangedAt?: Date;
 
-  /**
-   * Password version for tracking password changes.
-   * Incremented when password is changed to invalidate old sessions.
-   * NOT USED
-   */
-  // @Property({ name: 'password_version' })
-  // passwordVersion!: number;
+  @Property({
+    fieldName: 'password_version',
+    serializedName: 'password_version',
+    default: 1,
+    type: 'int',
+    nullable: false,
+  })
+  passwordVersion!: number;
 
-  /**
-   * Secret key for Time-based One-Time Password (TOTP) generation.
-   * Used for MFA authentication via authenticator apps.
-   * NOT USED
-   */
-  // @Property({ name: 'totp_secret', nullable: true })
-  // totpSecret?: string;
+  @Property({
+    fieldName: 'totp_secret',
+    serializedName: 'totp_secret',
+    nullable: true,
+    type: 'varchar',
+    length: 100,
+  })
+  totpSecret?: string;
 
-  /**
-   * Backup codes for MFA recovery when TOTP is unavailable.
-   * Stored as hashed values for security.
-   * NOT USED
-   */
-  //@Property({ name: 'backup_codes', type: 'json', nullable: true })
-  // backupCodes?: string[];
+  @Property({
+    fieldName: 'backup_codes',
+    serializedName: 'backup_codes',
+    type: 'json',
+    nullable: true,
+  })
+  backupCodes?: string[];
 
-  /**
-   * Timestamp when email address was verified.
-   * Required for certain account operations and security features.
-   */
+  @Property({
+    fieldName: 'mfa_enabled',
+    serializedName: 'mfa_enabled',
+    default: false,
+    type: 'boolean',
+    nullable: false,
+  })
+  mfaEnabled: boolean = false;
+
+  @Property({
+    fieldName: 'mfa_method',
+    serializedName: 'mfa_method',
+    nullable: true,
+    type: 'varchar',
+    length: 20,
+  })
+  mfaMethod?: string;
+
   @Property({
     fieldName: 'email_verified_at',
     serializedName: 'email_verified_at',
     nullable: true,
+    type: 'timestamp',
   })
   emailVerifiedAt?: Date;
 
-  /**
-   * Timestamp when phone number was verified via SMS.
-   * Required for SMS-based authentication and notifications.
-   */
   @Property({
     fieldName: 'phone_verified_at',
     serializedName: 'phone_verified_at',
     nullable: true,
+    type: 'datetime',
   })
   phoneVerifiedAt?: Date;
 
-  /**
-   * Timestamp when user identity was verified (KYC process).
-   * Required for high-security operations and compliance.
-   * NOT USED
-   */
-  // @Property({ name: 'identity_verified_at', nullable: true })
-  // identityVerifiedAt?: Date;
+  @Property({
+    fieldName: 'identity_verified_at',
+    serializedName: 'identity_verified_at',
+    nullable: true,
+    type: 'datetime',
+  })
+  identityVerifiedAt?: Date;
 
-  /**
-   * Whether Multi-Factor Authentication is enabled for this account.
-   * Defaults to false for new accounts.
-   * NOT USED
-   */
-  // @Property({ default: false })
-  // mfaEnabled: boolean = false;
-
-  /**
-   * Method used for MFA (totp, sms, email, etc.).
-   * Determines which MFA flow to use during authentication.
-   * NOT USED
-   */
-  // @Property({ name: 'mfa_method', nullable: true })
-  // mfaMethod?: string;
-
-  /**
-   * Counter for consecutive failed login attempts.
-   * Used to implement account lockout policies.
-   */
   @Property({
     fieldName: 'failed_login_attempts',
     serializedName: 'failed_login_attempts',
     default: 0,
+    type: 'int',
+    nullable: false,
   })
   failedLoginAttempts: number = 0;
 
-  /**
-   * Timestamp until which the account is locked due to security violations.
-   * Null when account is not locked.
-   */
   @Property({
     fieldName: 'locked_until',
     serializedName: 'locked_until',
     nullable: true,
+    type: 'datetime',
   })
   lockedUntil?: Date;
 
-  /**
-   * Timestamp of the last successful login.
-   * Used for activity tracking and security monitoring.
-   */
   @Property({
     fieldName: 'last_login_at',
     serializedName: 'last_login_at',
     nullable: true,
+    type: 'datetime',
   })
+  @Index({ name: 'idx_last_login' })
   lastLoginAt?: Date;
 
-  /**
-   * IP address of the last successful login.
-   * Used for security monitoring and fraud detection.
-   */
   @Property({
     fieldName: 'last_login_ip',
     serializedName: 'last_login_ip',
     nullable: true,
+    type: 'varchar',
+    length: 45,
   })
+  @Index({ name: 'idx_last_login_ip' })
   lastLoginIp?: string;
 
-  /**
-   * Current account status (active, suspended, pending, etc.).
-   * Controls whether the user can access the system.
-   */
+  @Property({
+    fieldName: 'status',
+    serializedName: 'status',
+    type: 'varchar',
+    length: 20,
+    default: UserStatus.PENDING,
+  })
   @Enum(() => UserStatus)
-  status: UserStatus = UserStatus.ACTIVE;
+  @Index({ name: 'idx_status' })
+  status: UserStatus = UserStatus.PENDING;
 
-  /**
-   * Timestamp when user accepted the Terms of Service.
-   * Required for account activation and compliance.
-   * NOT USED
-   */
-  // @Property({ name: 'terms_accepted_at', nullable: true })
-  // termsAcceptedAt?: Date;
+  @Property({
+    fieldName: 'terms_accepted_at',
+    serializedName: 'terms_accepted_at',
+    nullable: true,
+    type: 'datetime',
+  })
+  termsAcceptedAt?: Date;
 
-  /**
-   * Version of Terms of Service that was accepted.
-   * Used to track policy changes and re-acceptance requirements.
-   * NOT USED
-   */
-  // @Property({ name: 'terms_version', nullable: true })
-  // termsVersion?: string;
+  @Property({
+    fieldName: 'terms_version',
+    serializedName: 'terms_version',
+    nullable: true,
+    type: 'varchar',
+    length: 20,
+  })
+  termsVersion?: string;
 
-  /**
-   * Timestamp when user accepted the Privacy Policy.
-   * Required for GDPR compliance and data processing consent.
-   * NOT USED
-   */
-  // @Property({ name: 'privacy_accepted_at', nullable: true })
-  // privacyAcceptedAt?: Date;
+  @Property({
+    fieldName: 'privacy_accepted_at',
+    nullable: true,
+    type: 'timestamp',
+  })
+  privacyAcceptedAt?: Date;
 
-  /**
-   * Timestamp when the user account was created.
-   * Automatically set on entity creation.
-   */
+  @Property({
+    fieldName: 'privacy_version',
+    serializedName: 'privacy_version',
+    nullable: true,
+    type: 'varchar',
+    length: 20,
+  })
+  privacyVersion?: string;
+
   @Property({
     fieldName: 'created_at',
     serializedName: 'created_at',
-    onCreate: () => new Date(),
+    type: 'datetime',
+    nullable: false,
   })
-  createdAt?: Date;
+  createdAt!: Date;
 
-  /**
-   * Timestamp when the user account was last updated.
-   * Automatically updated on any entity modification.
-   */
   @Property({
     fieldName: 'updated_at',
     serializedName: 'updated_at',
-    onUpdate: () => new Date(),
+    type: 'timestamp',
+    nullable: false,
   })
   updatedAt?: Date;
 
-  /**
-   * Soft delete timestamp for account deactivation.
-   * Null for active accounts, set to deletion date for deactivated accounts.
-   */
   @Property({
     fieldName: 'deleted_at',
     serializedName: 'deleted_at',
     nullable: true,
+    type: 'timestamp',
   })
+  @Index({ name: 'idx_deleted_at' })
   deletedAt?: Date;
 
-  /**
-   * Identifier of the user/admin who created this account.
-   * Used for audit trails in admin operations.
-   * NOT USED
-   */
-  // @Property({ name: 'created_by', nullable: true })
-  // createdBy?: string;
+  @Property({
+    fieldName: 'created_by',
+    nullable: true,
+    type: 'varchar',
+    length: 100,
+  })
+  createdBy?: string;
 
-  /**
-   * Identifier of the user/admin who last updated this account.
-   * Used for audit trails in admin operations.
-   * NOT USED
-   */
-  // @Property({ name: 'updated_by', nullable: true })
-  // updatedBy?: string;
+  @Property({
+    fieldName: 'updated_by',
+    nullable: true,
+    type: 'varchar',
+    length: 100,
+  })
+  updatedBy?: string;
 
   // ========================================
   // RELATIONSHIPS
@@ -354,8 +499,12 @@ export class UserEntity extends BaseEntity {
   /**
    * Extended user profile information (name, avatar, preferences, etc.).
    * One-to-one relationship - each user has at most one profile.
+   * Cascade delete: When user is deleted, profile is automatically deleted.
    */
-  @OneToOne(() => ProfileEntity, (profile) => profile.user, { nullable: true })
+  @OneToOne(() => ProfileEntity, (profile) => profile.user, {
+    nullable: true,
+    cascade: [Cascade.REMOVE],
+  })
   profile?: ProfileEntity;
 
   /**
@@ -363,64 +512,96 @@ export class UserEntity extends BaseEntity {
    * One-to-many relationship - user can have multiple OAuth providers.
    * Examples: Google, Apple, Facebook, GitHub, etc.
    */
-  @OneToMany(() => FederatedIdentityEntity, (identity) => identity.user)
+  @OneToMany(() => FederatedIdentityEntity, (identity) => identity.user, {
+    cascade: [Cascade.REMOVE],
+  })
   federatedIdentities = new Collection<FederatedIdentityEntity>(this);
 
   /**
    * User's assigned roles and permissions.
    * One-to-many relationship - user can have multiple roles.
    * Used for authorization and access control.
+   * Cascade delete: When user is deleted, all role assignments are automatically deleted.
    */
-  @OneToMany(() => UserRoleEntity, (userRole) => userRole.user)
+  @OneToMany(() => UserRoleEntity, (userRole) => userRole.user, {
+    cascade: [Cascade.REMOVE],
+  })
   userRoles = new Collection<UserRoleEntity>(this);
 
   /**
    * One-time password codes for authentication.
    * One-to-many relationship - user can have multiple active OTPs.
    * Used for SMS/email verification and password reset.
-   * NOTE: This relationship is commented out to avoid circular dependencies.
-   * OTPs should be managed through the auth module.
+   * Cascade delete: When user is deleted, all OTPs are automatically deleted.
    */
-  // @OneToMany(() => OtpEntity, (otp) => otp.user)
-  // otps = new Collection<OtpEntity>(this);
+  @OneToMany(() => OtpEntity, (otp) => otp.user, {
+    cascade: [Cascade.REMOVE],
+  })
+  otps = new Collection<OtpEntity>(this);
 
   /**
    * Active user sessions across different devices/browsers.
    * One-to-many relationship - user can be logged in on multiple devices.
    * Used for session management and security monitoring.
+   * Cascade delete: When user is deleted, all sessions are automatically deleted.
    */
-  @OneToMany(() => SessionEntity, (session) => session.user)
+  @OneToMany(() => SessionEntity, (session) => session.user, {
+    cascade: [Cascade.REMOVE],
+  })
   sessions = new Collection<SessionEntity>(this);
 
   /**
    * Trusted devices for this user account.
    * One-to-many relationship - user can have multiple trusted devices.
    * Used for device-based authentication and security policies.
+   * Cascade delete: When user is deleted, all devices are automatically deleted.
    */
-  @OneToMany(() => DeviceEntity, (device) => device.user)
+  @OneToMany(() => DeviceEntity, (device) => device.user, {
+    cascade: [Cascade.REMOVE],
+  })
   devices = new Collection<DeviceEntity>(this);
 
   /**
    * API access keys for programmatic access.
    * One-to-many relationship - user can have multiple API keys.
    * Used for third-party integrations and automated access.
+   * Cascade delete: When user is deleted, all API keys are automatically deleted.
    */
-  @OneToMany(() => ApiKeyEntity, (apiKey) => apiKey.user)
+  @OneToMany(() => ApiKeyEntity, (apiKey) => apiKey.user, {
+    cascade: [Cascade.REMOVE],
+  })
   apiKeys = new Collection<ApiKeyEntity>(this);
 
   /**
    * Security audit trail for this user account.
    * One-to-many relationship - tracks all security-related events.
    * Used for compliance, monitoring, and incident response.
+   * Set null on delete: When user is deleted, security events remain for audit purposes.
    */
-  @OneToMany(() => SecurityEventEntity, (event) => event.user)
+  @OneToMany(() => SecurityEventEntity, (event) => event.user, {
+    cascade: [Cascade.PERSIST],
+  })
   securityEvents = new Collection<SecurityEventEntity>(this);
 
-  // Optional: Revoked tokens are not used in the current implementation
-  // @OneToMany(() => RevokedTokenEntity, (token) => token.user)
-  // revokedTokens = new Collection<RevokedTokenEntity>(this);
+  /**
+   * Revoked authentication tokens for this user account.
+   * One-to-many relationship - user can have multiple revoked tokens.
+   * Used for token blacklisting and security audit trails.
+   * Set null on delete: When user is deleted, revoked tokens remain for audit purposes.
+   */
+  @OneToMany(() => RevokedTokenEntity, (token) => token.user, {
+    cascade: [Cascade.PERSIST],
+  })
+  revokedTokens = new Collection<RevokedTokenEntity>(this);
 
-  // Optional: Audit logs are not used in the current implementation
-  // @OneToMany(() => AuditLogEntity, (log) => log.user)
-  // auditLogs = new Collection<AuditLogEntity>(this);
+  /**
+   * Audit log entries for this user account.
+   * One-to-many relationship - user can have multiple audit log entries.
+   * Used for activity tracking and compliance audit trails.
+   * Set null on delete: When user is deleted, audit logs remain for compliance purposes.
+   */
+  @OneToMany(() => AuditLogEntity, (log) => log.user, {
+    cascade: [Cascade.PERSIST],
+  })
+  auditLogs = new Collection<AuditLogEntity>(this);
 }

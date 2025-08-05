@@ -2,6 +2,8 @@ import {
   BaseEntity,
   Entity,
   EntityRepositoryType,
+  Enum,
+  Index,
   ManyToOne,
   OptionalProps,
   PrimaryKey,
@@ -10,6 +12,21 @@ import {
 } from '@mikro-orm/core';
 import { RevokedTokenRepository } from '../repositories/revoked-token.repository';
 import { UserEntity } from './user.entity';
+
+export enum TokenType {
+  ACCESS = 'access',
+  REFRESH = 'refresh',
+  API = 'api',
+  RESET = 'reset',
+}
+
+export enum RevocationReason {
+  LOGOUT = 'logout',
+  SECURITY = 'security',
+  ADMIN = 'admin',
+  EXPIRED = 'expired',
+  COMPROMISED = 'compromised',
+}
 
 /**
  * Revoked token entity for tracking invalidated authentication tokens.
@@ -38,23 +55,31 @@ export class RevokedTokenEntity extends BaseEntity {
     | 'ipAddress'; // IP address of the client (nullable)
 
   /** Unique identifier for the revoked token record */
-  @PrimaryKey()
-  id!: number;
+  @PrimaryKey({ type: 'bigint', autoincrement: true })
+  id!: bigint;
 
   /**
    * Associated user account that owned the revoked token.
    * Many-to-one relationship - one user can have multiple revoked tokens.
+   * Set null on delete: When user is deleted, user_id becomes null but token remains for audit.
    */
-  @ManyToOne({ fieldName: 'user_id' })
-  user!: UserEntity;
+  @ManyToOne(() => UserEntity, { fieldName: 'user_id', nullable: true })
+  user?: UserEntity;
 
   /**
    * Hashed value of the revoked token for security.
    * Never store plain text tokens - only hashed values for blacklisting.
    * Used to check if a token has been revoked during validation.
    */
-  @Property({ fieldName: 'token_hash', serializedName: 'token_hash' })
+  @Property({
+    fieldName: 'token_hash',
+    serializedName: 'token_hash',
+    type: 'varchar',
+    length: 255,
+    nullable: false,
+  })
   @Unique()
+  @Index({ name: 'idx_token_hash' })
   tokenHash!: string;
 
   /**
@@ -62,17 +87,29 @@ export class RevokedTokenEntity extends BaseEntity {
    * Determines the token's purpose and validation rules.
    * Used for token lifecycle management and security policies.
    */
-  @Property({ fieldName: 'token_type', serializedName: 'token_type' })
-  tokenType!: string; // access / refresh / api / reset
+  @Property({
+    fieldName: 'token_type',
+    serializedName: 'token_type',
+    type: 'varchar',
+    length: 20,
+    nullable: false,
+  })
+  @Enum(() => TokenType)
+  tokenType!: TokenType;
 
   /**
    * JWT ID (JTI) for unique token identification.
    * Optional field for JWT tokens that include a JTI claim.
    * Used for token tracking and duplicate prevention.
-   * NOT USED
    */
-  // @Property({ nullable: true })
-  // jti?: string;
+  @Property({
+    fieldName: 'jti',
+    serializedName: 'jti',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  jti?: string;
 
   /**
    * User agent string from the client that used the token.
@@ -82,6 +119,8 @@ export class RevokedTokenEntity extends BaseEntity {
     fieldName: 'user_agent',
     serializedName: 'user_agent',
     nullable: true,
+    type: 'varchar',
+    length: 255,
   })
   userAgent?: string;
 
@@ -93,44 +132,72 @@ export class RevokedTokenEntity extends BaseEntity {
     fieldName: 'ip_address',
     serializedName: 'ip_address',
     nullable: true,
+    type: 'varchar',
+    length: 45,
   })
   ipAddress?: string;
 
   /**
    * Timestamp when the token was originally issued.
    * Used for token lifecycle tracking and security audits.
-   * NOT USED
    */
-  // @Property({ name: 'issued_at' })
-  // issuedAt!: Date;
+  @Property({
+    fieldName: 'issued_at',
+    serializedName: 'issued_at',
+    type: 'timestamp',
+    nullable: false,
+  })
+  issuedAt!: Date;
 
   /**
    * Timestamp when the token would have naturally expired.
    * Used for token lifecycle analysis and security assessments.
    */
-  @Property({ fieldName: 'expires_at', serializedName: 'expires_at' })
+  @Property({
+    fieldName: 'expires_at',
+    serializedName: 'expires_at',
+    type: 'timestamp',
+    nullable: false,
+  })
+  @Index({ name: 'idx_revoked_token_expires_at' })
   expiresAt!: Date;
 
   /**
    * Timestamp when the token was revoked.
    * Used for security incident tracking and audit trails.
    */
-  @Property({ fieldName: 'revoked_at', serializedName: 'revoked_at' })
-  revokedAt!: Date;
+  @Property({
+    fieldName: 'revoked_at',
+    serializedName: 'revoked_at',
+    type: 'timestamp',
+    nullable: false,
+  })
+  revokedAt: Date = new Date();
 
   /**
    * Reason for token revocation (logout, security breach, admin action, etc.).
    * Used for security incident response and compliance reporting.
-   * NOT USED
    */
-  // @Property({ name: 'revocation_reason' })
-  // revocationReason!: string;
+  @Property({
+    fieldName: 'revocation_reason',
+    serializedName: 'revocation_reason',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
+  @Enum(() => RevocationReason)
+  revocationReason?: RevocationReason;
 
   /**
    * Identifier of who revoked the token (user ID, admin ID, system).
    * Used for accountability and audit trail in security incidents.
-   * NOT USED
    */
-  // @Property({ name: 'revoked_by', nullable: true })
-  // revokedBy?: string;
+  @Property({
+    fieldName: 'revoked_by',
+    serializedName: 'revoked_by',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  revokedBy?: string;
 }

@@ -1,5 +1,5 @@
 import { EntityRepository } from '@mikro-orm/postgresql';
-import { RateLimitEntity } from '../entities/rate-limit.entity';
+import { RateLimitEntity, RateLimitScope } from '../entities/rate-limit.entity';
 
 export class RateLimitRepository extends EntityRepository<RateLimitEntity> {
   /**
@@ -25,7 +25,7 @@ export class RateLimitRepository extends EntityRepository<RateLimitEntity> {
   async findByIdentifierTypeAndScope(
     identifier: string,
     limitType: string,
-    scope: string,
+    scope: RateLimitScope,
   ): Promise<RateLimitEntity | null> {
     return this.findOne({ identifier, limitType, scope });
   }
@@ -47,7 +47,7 @@ export class RateLimitRepository extends EntityRepository<RateLimitEntity> {
   /**
    * Find all rate limits for a specific scope
    */
-  async findByScope(scope: string): Promise<RateLimitEntity[]> {
+  async findByScope(scope: RateLimitScope): Promise<RateLimitEntity[]> {
     return this.find({ scope });
   }
 
@@ -85,7 +85,7 @@ export class RateLimitRepository extends EntityRepository<RateLimitEntity> {
   async createRateLimit(rateLimitData: {
     identifier: string;
     limitType: string;
-    scope: string;
+    scope: RateLimitScope;
     maxAttempts: number;
     windowSeconds: number;
     ipAddress?: string;
@@ -112,7 +112,7 @@ export class RateLimitRepository extends EntityRepository<RateLimitEntity> {
    * Update rate limit information
    */
   async updateRateLimit(
-    id: number,
+    id: bigint,
     rateLimitData: Partial<RateLimitEntity>,
   ): Promise<RateLimitEntity | null> {
     const rateLimit = await this.findOne({ id });
@@ -126,7 +126,7 @@ export class RateLimitRepository extends EntityRepository<RateLimitEntity> {
   /**
    * Increment attempts for a rate limit
    */
-  async incrementAttempts(id: number): Promise<void> {
+  async incrementAttempts(id: bigint): Promise<void> {
     const rateLimit = await this.findOne({ id });
     if (rateLimit) {
       rateLimit.attempts += 1;
@@ -137,28 +137,28 @@ export class RateLimitRepository extends EntityRepository<RateLimitEntity> {
   /**
    * Reset attempts for a rate limit
    */
-  async resetAttempts(id: number): Promise<void> {
+  async resetAttempts(id: bigint): Promise<void> {
     await this.nativeUpdate({ id }, { attempts: 0 });
   }
 
   /**
    * Block a rate limit until a specific time
    */
-  async blockUntil(id: number, blockedUntil: Date): Promise<void> {
+  async blockUntil(id: bigint, blockedUntil: Date): Promise<void> {
     await this.nativeUpdate({ id }, { blockedUntil: blockedUntil });
   }
 
   /**
    * Unblock a rate limit
    */
-  async unblock(id: number): Promise<void> {
+  async unblock(id: bigint): Promise<void> {
     await this.nativeUpdate({ id }, { blockedUntil: null });
   }
 
   /**
    * Reset window for a rate limit
    */
-  async resetWindow(id: number, windowSeconds: number): Promise<void> {
+  async resetWindow(id: bigint, windowSeconds: number): Promise<void> {
     const now = new Date();
     const windowEnd = new Date(now.getTime() + windowSeconds * 1000);
 
@@ -176,7 +176,7 @@ export class RateLimitRepository extends EntityRepository<RateLimitEntity> {
   /**
    * Update IP address for a rate limit
    */
-  async updateIpAddress(id: number, ipAddress: string): Promise<void> {
+  async updateIpAddress(id: bigint, ipAddress: string): Promise<void> {
     await this.nativeUpdate({ id }, { ipAddress: ipAddress });
   }
 
@@ -184,7 +184,7 @@ export class RateLimitRepository extends EntityRepository<RateLimitEntity> {
    * Update metadata for a rate limit
    */
   async updateMetadata(
-    id: number,
+    id: bigint,
     metadata: Record<string, unknown>,
   ): Promise<void> {
     await this.nativeUpdate({ id }, { metadata: metadata });
@@ -290,7 +290,7 @@ export class RateLimitRepository extends EntityRepository<RateLimitEntity> {
   /**
    * Count rate limits for a specific scope
    */
-  async countByScope(scope: string): Promise<number> {
+  async countByScope(scope: RateLimitScope): Promise<number> {
     return this.count({ scope });
   }
 

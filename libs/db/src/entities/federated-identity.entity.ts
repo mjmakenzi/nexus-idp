@@ -2,13 +2,24 @@ import {
   BaseEntity,
   Entity,
   EntityRepositoryType,
+  Enum,
+  Index,
   ManyToOne,
   OptionalProps,
   PrimaryKey,
   Property,
+  Unique,
 } from '@mikro-orm/core';
 import { FederatedIdentityRepository } from '../repositories/federated-identity.repository';
 import { UserEntity } from './user.entity';
+
+export enum FederatedIdentityProvider {
+  GOOGLE = 'google',
+  FACEBOOK = 'facebook',
+  GITHUB = 'github',
+  APPLE = 'apple',
+  MICROSOFT = 'microsoft',
+}
 
 /**
  * Federated identity entity for managing OAuth/SSO provider connections.
@@ -43,22 +54,37 @@ export class FederatedIdentityEntity extends BaseEntity {
     | 'lastUsedAt'; // Last usage timestamp (nullable)
 
   /** Unique identifier for the federated identity record */
-  @PrimaryKey()
-  id!: number;
+  @PrimaryKey({ type: 'bigint', autoincrement: true })
+  id!: bigint;
 
   /**
    * Associated user account that owns this federated identity.
    * Many-to-one relationship - one user can have multiple OAuth providers.
    */
-  @ManyToOne(() => UserEntity)
+  @ManyToOne(() => UserEntity, {
+    fieldName: 'user_id',
+    nullable: false,
+  })
+  @Index({ name: 'idx_user_provider', properties: ['user', 'provider'] })
   user!: UserEntity;
 
   /**
    * OAuth provider name (google, facebook, github, apple, etc.).
    * Used to identify which external service this identity belongs to.
    */
-  @Property()
-  provider!: string; // e.g., google/facebook/github/apple
+  @Property({
+    fieldName: 'provider',
+    serializedName: 'provider',
+    type: 'varchar',
+    length: 20,
+    nullable: false,
+  })
+  @Enum(() => FederatedIdentityProvider)
+  @Unique({
+    name: 'unique_provider_user',
+    properties: ['provider', 'providerUserId'],
+  })
+  provider!: FederatedIdentityProvider;
 
   /**
    * Unique user identifier from the OAuth provider.
@@ -68,6 +94,10 @@ export class FederatedIdentityEntity extends BaseEntity {
   @Property({
     fieldName: 'provider_user_id',
     serializedName: 'provider_user_id',
+    type: 'varchar',
+    length: 255,
+    nullable: false,
+    unique: true,
   })
   providerUserId!: string;
 
@@ -79,6 +109,8 @@ export class FederatedIdentityEntity extends BaseEntity {
     fieldName: 'provider_username',
     serializedName: 'provider_username',
     nullable: true,
+    type: 'varchar',
+    length: 255,
   })
   providerUsername?: string;
 
@@ -90,6 +122,8 @@ export class FederatedIdentityEntity extends BaseEntity {
     fieldName: 'provider_email',
     serializedName: 'provider_email',
     nullable: true,
+    type: 'varchar',
+    length: 255,
   })
   providerEmail?: string;
 
@@ -115,6 +149,8 @@ export class FederatedIdentityEntity extends BaseEntity {
     fieldName: 'access_token_hash',
     serializedName: 'access_token_hash',
     nullable: true,
+    type: 'varchar',
+    length: 255,
   })
   accessTokenHash?: string;
 
@@ -127,6 +163,8 @@ export class FederatedIdentityEntity extends BaseEntity {
     fieldName: 'refresh_token_hash',
     serializedName: 'refresh_token_hash',
     nullable: true,
+    type: 'varchar',
+    length: 255,
   })
   refreshTokenHash?: string;
 
@@ -138,6 +176,7 @@ export class FederatedIdentityEntity extends BaseEntity {
     fieldName: 'token_expires_at',
     serializedName: 'token_expires_at',
     nullable: true,
+    type: 'timestamp',
   })
   tokenExpiresAt?: Date;
 
@@ -150,6 +189,8 @@ export class FederatedIdentityEntity extends BaseEntity {
     fieldName: 'is_primary',
     serializedName: 'is_primary',
     default: false,
+    type: 'boolean',
+    nullable: false,
   })
   isPrimary: boolean = false;
 
@@ -157,8 +198,13 @@ export class FederatedIdentityEntity extends BaseEntity {
    * Timestamp when this federated identity was linked to the user account.
    * Used for account linking audit trail and relationship tracking.
    */
-  @Property({ fieldName: 'linked_at', serializedName: 'linked_at' })
-  linkedAt!: Date;
+  @Property({
+    fieldName: 'linked_at',
+    serializedName: 'linked_at',
+    type: 'timestamp',
+    nullable: false,
+  })
+  linkedAt: Date = new Date();
 
   /**
    * Timestamp when this federated identity was last used for authentication.
@@ -168,6 +214,7 @@ export class FederatedIdentityEntity extends BaseEntity {
     fieldName: 'last_used_at',
     serializedName: 'last_used_at',
     nullable: true,
+    type: 'timestamp',
   })
   lastUsedAt?: Date;
 
@@ -178,7 +225,8 @@ export class FederatedIdentityEntity extends BaseEntity {
   @Property({
     fieldName: 'created_at',
     serializedName: 'created_at',
-    onCreate: () => new Date(),
+    type: 'timestamp',
+    nullable: false,
   })
   createdAt: Date = new Date();
 
@@ -189,7 +237,8 @@ export class FederatedIdentityEntity extends BaseEntity {
   @Property({
     fieldName: 'updated_at',
     serializedName: 'updated_at',
-    onUpdate: () => new Date(),
+    type: 'timestamp',
+    nullable: false,
   })
   updatedAt: Date = new Date();
 }

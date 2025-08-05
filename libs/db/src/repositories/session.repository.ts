@@ -16,7 +16,7 @@ export class SessionRepository extends EntityRepository<SessionEntity> {
    * Update a session
    */
   async updateSession(
-    id: number,
+    id: bigint,
     dto: Partial<SessionEntity>,
   ): Promise<SessionEntity> {
     const session = await this.findOne({ id });
@@ -135,14 +135,14 @@ export class SessionRepository extends EntityRepository<SessionEntity> {
     sessionId: string,
     userId: number,
   ): Promise<{
-    id: number;
+    id: bigint;
     refreshTokenHash?: string;
     expiresAt: Date;
     lastActivityAt?: Date;
     terminatedAt?: Date;
     terminationReason?: string;
     user: {
-      id: number;
+      id: bigint;
       username: string;
       email?: string;
       emailVerifiedAt?: Date;
@@ -151,7 +151,6 @@ export class SessionRepository extends EntityRepository<SessionEntity> {
       createdAt?: Date;
       profile?: {
         displayname?: string;
-        avatarUrl?: string;
       };
     };
   } | null> {
@@ -183,7 +182,6 @@ export class SessionRepository extends EntityRepository<SessionEntity> {
         profile: session.user.profile
           ? {
               displayname: session.user.profile.displayname,
-              avatarUrl: session.user.profile.avatarUrl,
             }
           : undefined,
       },

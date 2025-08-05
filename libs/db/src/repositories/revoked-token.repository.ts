@@ -1,5 +1,8 @@
 import { EntityRepository } from '@mikro-orm/postgresql';
-import { RevokedTokenEntity } from '../entities/revoked-token.entity';
+import {
+  RevokedTokenEntity,
+  TokenType,
+} from '../entities/revoked-token.entity';
 import { UserEntity } from '../entities/user.entity';
 
 export class RevokedTokenRepository extends EntityRepository<RevokedTokenEntity> {
@@ -27,7 +30,7 @@ export class RevokedTokenRepository extends EntityRepository<RevokedTokenEntity>
   /**
    * Find revoked tokens by token type
    */
-  async findByTokenType(tokenType: string): Promise<RevokedTokenEntity[]> {
+  async findByTokenType(tokenType: TokenType): Promise<RevokedTokenEntity[]> {
     return this.find({ tokenType });
   }
 
@@ -98,7 +101,7 @@ export class RevokedTokenRepository extends EntityRepository<RevokedTokenEntity>
    */
   async findByUserAndType(
     userId: number,
-    tokenType: string,
+    tokenType: TokenType,
   ): Promise<RevokedTokenEntity[]> {
     return this.find({ user: userId, tokenType });
   }
@@ -185,7 +188,7 @@ export class RevokedTokenRepository extends EntityRepository<RevokedTokenEntity>
    */
   async getRevocationCountForUserByType(
     userId: number,
-    tokenType: string,
+    tokenType: TokenType,
   ): Promise<number> {
     return this.count({ user: userId, tokenType });
   }
@@ -223,7 +226,7 @@ export class RevokedTokenRepository extends EntityRepository<RevokedTokenEntity>
   /**
    * Delete all revoked tokens for a specific token type
    */
-  async deleteByTokenType(tokenType: string): Promise<number> {
+  async deleteByTokenType(tokenType: TokenType): Promise<number> {
     const result = await this.nativeDelete({ tokenType });
     return result;
   }
@@ -268,7 +271,7 @@ export class RevokedTokenRepository extends EntityRepository<RevokedTokenEntity>
   /**
    * Count revoked tokens by token type
    */
-  async countByTokenType(tokenType: string): Promise<number> {
+  async countByTokenType(tokenType: TokenType): Promise<number> {
     return this.count({ tokenType });
   }
 
@@ -353,7 +356,7 @@ export class RevokedTokenRepository extends EntityRepository<RevokedTokenEntity>
    */
   async findByCriteria(criteria: {
     userId?: number;
-    tokenType?: string;
+    tokenType?: TokenType;
     ipAddress?: string;
     userAgent?: string;
     expiresAfter?: Date;
@@ -402,7 +405,7 @@ export class RevokedTokenRepository extends EntityRepository<RevokedTokenEntity>
     limit: number = 10,
     filters?: {
       userId?: number;
-      tokenType?: string;
+      tokenType?: TokenType;
       ipAddress?: string;
     },
   ): Promise<{
@@ -495,7 +498,7 @@ export class RevokedTokenRepository extends EntityRepository<RevokedTokenEntity>
    * Get revoked tokens by token type with pagination
    */
   async findByTokenTypeWithPagination(
-    tokenType: string,
+    tokenType: TokenType,
     page: number = 1,
     limit: number = 10,
   ): Promise<{

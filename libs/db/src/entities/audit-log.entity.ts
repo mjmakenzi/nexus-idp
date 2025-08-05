@@ -2,6 +2,8 @@ import {
   BaseEntity,
   Entity,
   EntityRepositoryType,
+  Enum,
+  Index,
   ManyToOne,
   OptionalProps,
   PrimaryKey,
@@ -9,6 +11,22 @@ import {
 } from '@mikro-orm/core';
 import { AuditLogRepository } from '../repositories/audit-log.repository';
 import { UserEntity } from './user.entity';
+
+export enum ActorType {
+  USER = 'user',
+  SYSTEM = 'system',
+  ADMIN = 'admin',
+  API = 'api',
+}
+
+export enum ActionType {
+  CREATE = 'create',
+  READ = 'read',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LOGIN = 'login',
+  LOGOUT = 'logout',
+}
 
 /**
  * Audit log entity for tracking all system activities and changes.
@@ -38,21 +56,28 @@ export class AuditLogEntity extends BaseEntity {
     | 'metadata'; // Additional context data (nullable)
 
   /** Unique identifier for the audit log record */
-  @PrimaryKey()
-  id!: number;
+  @PrimaryKey({ type: 'bigint', autoincrement: true })
+  id!: bigint;
 
   /**
    * User who performed the action (actor).
    * Many-to-one relationship - tracks who is responsible for the action.
    * Used for accountability and user activity tracking.
+   * Set null on delete: When user is deleted, user_id becomes null but audit log remains.
    */
-  @ManyToOne({ fieldName: 'user_id' })
-  user!: UserEntity;
+  @ManyToOne({
+    fieldName: 'user_id',
+    entity: () => UserEntity,
+    nullable: true,
+  })
+  @Index({ name: 'idx_user_performed', properties: ['user', 'performedAt'] })
+  user?: UserEntity;
 
   /**
    * Target user affected by the action (if applicable).
    * Many-to-one relationship - used when actions affect other users.
    * Examples: admin modifying user account, user blocking another user.
+   * Set null on delete: When target user is deleted, target_user_id becomes null but audit log remains.
    */
   @ManyToOne(() => UserEntity, { fieldName: 'target_user_id', nullable: true })
   targetUser?: UserEntity;
@@ -61,28 +86,55 @@ export class AuditLogEntity extends BaseEntity {
    * Type of actor who performed the action (user, system, admin, api).
    * Used to categorize the source of the action for analysis and filtering.
    */
-  @Property({ fieldName: 'actor_type', serializedName: 'actor_type' })
-  actorType!: string; // user/system/admin/api
+  @Property({
+    fieldName: 'actor_type',
+    serializedName: 'actor_type',
+    type: 'varchar',
+    length: 20,
+    nullable: false,
+  })
+  @Enum(() => ActorType)
+  actorType!: ActorType; // user/system/admin/api
 
   /**
    * Action performed (create, update, delete, login, logout, etc.).
    * Describes what operation was executed on the resource.
    */
-  @Property({ fieldName: 'action', serializedName: 'action' })
-  action!: string; // create/update/delete
+  @Property({
+    fieldName: 'action',
+    serializedName: 'action',
+    type: 'varchar',
+    length: 20,
+    nullable: false,
+  })
+  @Enum(() => ActionType)
+  action!: ActionType; // create/update/delete
 
   /**
    * Type of resource that was affected (User, Role, Device, etc.).
    * Used to categorize what entity was modified or accessed.
    */
-  @Property({ fieldName: 'resource_type', serializedName: 'resource_type' })
+  @Property({
+    fieldName: 'resource_type',
+    serializedName: 'resource_type',
+    type: 'varchar',
+    length: 50,
+    nullable: false,
+  })
+  @Index({ name: 'idx_resource', properties: ['resourceType', 'resourceId'] })
   resourceType!: string; // e.g. User, Role, Device
 
   /**
    * Unique identifier of the specific resource that was affected.
    * Used to link the audit log to the specific entity that was modified.
    */
-  @Property({ fieldName: 'resource_id', serializedName: 'resource_id' })
+  @Property({
+    fieldName: 'resource_id',
+    serializedName: 'resource_id',
+    type: 'varchar',
+    length: 100,
+    nullable: false,
+  })
   resourceId!: string;
 
   /**
@@ -119,6 +171,8 @@ export class AuditLogEntity extends BaseEntity {
     fieldName: 'ip_address',
     serializedName: 'ip_address',
     nullable: true,
+    type: 'varchar',
+    length: 45,
   })
   ipAddress?: string;
 
@@ -130,6 +184,7 @@ export class AuditLogEntity extends BaseEntity {
     fieldName: 'user_agent',
     serializedName: 'user_agent',
     nullable: true,
+    type: 'text',
   })
   userAgent?: string;
 
@@ -149,13 +204,12 @@ export class AuditLogEntity extends BaseEntity {
    * Timestamp when the action was performed.
    * Used for chronological ordering and time-based analysis.
    */
-  @Property({ fieldName: 'performed_at', serializedName: 'performed_at' })
-  performedAt!: Date;
-
-  /**
-   * Timestamp when the audit log record was created.
-   * Used for audit trail management and record lifecycle tracking.
-   */
-  @Property({ fieldName: 'created_on', serializedName: 'created_on' })
-  createdOn!: Date;
+  @Property({
+    fieldName: 'performed_at',
+    serializedName: 'performed_at',
+    type: 'timestamp',
+    nullable: false,
+  })
+  @Index({ name: 'idx_performed_at' })
+  performedAt: Date = new Date();
 }

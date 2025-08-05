@@ -2,6 +2,8 @@ import {
   BaseEntity,
   Entity,
   EntityRepositoryType,
+  Enum,
+  Index,
   ManyToOne,
   OptionalProps,
   PrimaryKey,
@@ -10,6 +12,13 @@ import {
 import { SessionRepository } from '../repositories/session.repository';
 import { DeviceEntity } from './device.entity';
 import { UserEntity } from './user.entity';
+
+export enum SessionTerminationReason {
+  LOGOUT = 'logout',
+  TIMEOUT = 'timeout',
+  REVOKED = 'revoked',
+  DEVICE_REMOVED = 'device_removed',
+}
 
 /**
  * SessionEntity - Manages user authentication sessions and access control
@@ -51,28 +60,30 @@ export class SessionEntity extends BaseEntity {
     | 'terminatedAt'
     | 'terminationReason';
 
-  /**
-   * Unique identifier for the session record
-   * Auto-generated primary key for database operations
-   */
-  @PrimaryKey()
-  id!: number;
+  @PrimaryKey({ type: 'bigint', autoincrement: true })
+  id!: bigint;
 
   /**
-   * The user associated with this session
-   * Required relationship - every session must belong to a user
-   * Used for user authentication and session management
+   * Associated user account for this session.
+   * Many-to-one relationship - one user can have multiple sessions.
+   * Cascade delete: When user is deleted, this session is automatically deleted.
    */
-  @ManyToOne(() => UserEntity, { fieldName: 'user_id' })
+  @ManyToOne(() => UserEntity, {
+    fieldName: 'user_id',
+    nullable: false,
+  })
+  @Index({ name: 'idx_user_active', properties: ['user', 'terminatedAt'] })
   user!: UserEntity;
 
   /**
-   * The device associated with this session (optional)
-   * Links session to specific device for enhanced security tracking
-   * Nullable because sessions can exist without device information
-   * Used for device-based security policies and multi-device management
+   * Associated device for this session (optional).
+   * Many-to-one relationship - one device can have multiple sessions.
+   * Cascade delete: When device is deleted, this session is automatically deleted.
    */
-  @ManyToOne(() => DeviceEntity, { nullable: true })
+  @ManyToOne(() => DeviceEntity, {
+    fieldName: 'device_id',
+    nullable: true,
+  })
   device?: DeviceEntity;
 
   /**
@@ -80,25 +91,32 @@ export class SessionEntity extends BaseEntity {
    * Generated when session is created, used as session reference
    * Must be unique across all sessions for proper session management
    * Used in JWT tokens and session validation logic
-   * NOT USED
    */
-  @Property({ fieldName: 'session_id', unique: true })
+  @Property({
+    fieldName: 'session_id',
+    unique: true,
+    serializedName: 'session_id',
+    type: 'varchar',
+    length: 36,
+  })
+  @Index({ name: 'idx_session_id' })
   sessionId!: string;
 
   /**
    * Hashed access token for this session (optional)
    * Stored as hash for security - original token not persisted
    * Nullable because some sessions may not use access tokens
-   * Used for token validation and session security verification
-   * NOT USED
+    * Used for token validation and session security verification
+
    */
-  // @Property({
-  //   fieldName: 'access_token_hash',
-  //   serializedName: 'access_token_hash',
-  //   type: 'text',
-  //   nullable: true,
-  // })
-  // accessTokenHash?: string;
+  @Property({
+    fieldName: 'access_token_hash',
+    serializedName: 'access_token_hash',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  accessTokenHash?: string;
 
   /**
    * Hashed refresh token for this session (optional)
@@ -109,7 +127,8 @@ export class SessionEntity extends BaseEntity {
   @Property({
     fieldName: 'refresh_token_hash',
     serializedName: 'refresh_token_hash',
-    type: 'text',
+    type: 'varchar',
+    length: 255,
     nullable: true,
   })
   refreshTokenHash?: string;
@@ -120,10 +139,14 @@ export class SessionEntity extends BaseEntity {
    * Nullable because sessions may inherit permissions from user roles
    * Used for fine-grained access control and permission validation
    * Example: ['read:profile', 'write:posts', 'admin:users']
-   * NOT USED
    */
-  // @Property({ name: 'granted_permissions', type: 'json', nullable: true })
-  // grantedPermissions?: string[];
+  @Property({
+    fieldName: 'granted_permissions',
+    serializedName: 'granted-permissions',
+    type: 'json',
+    nullable: true,
+  })
+  grantedPermissions?: string[];
 
   /**
    * User agent string from the client browser/application (optional)
@@ -135,6 +158,7 @@ export class SessionEntity extends BaseEntity {
     fieldName: 'user_agent',
     serializedName: 'user_agent',
     nullable: true,
+    type: 'text',
   })
   userAgent?: string;
 
@@ -148,6 +172,8 @@ export class SessionEntity extends BaseEntity {
     fieldName: 'ip_address',
     serializedName: 'ip_address',
     nullable: true,
+    type: 'varchar',
+    length: 45,
   })
   ipAddress?: string;
 
@@ -157,10 +183,14 @@ export class SessionEntity extends BaseEntity {
    * Nullable because geolocation may not be available or enabled
    * Used for security monitoring and compliance reporting
    * Example: { country: 'US', city: 'New York', lat: 40.7128, lng: -74.0060 }
-   * NOT USED
    */
-  // @Property({ name: 'geo_location', type: 'json', nullable: true })
-  // geoLocation?: Record<string, unknown>;
+  @Property({
+    fieldName: 'geo_location',
+    serializedName: 'geo_location',
+    type: 'json',
+    nullable: true,
+  })
+  geoLocation?: Record<string, unknown>;
 
   /**
    * Timestamp when the session was created
@@ -170,7 +200,8 @@ export class SessionEntity extends BaseEntity {
   @Property({
     fieldName: 'created_at',
     serializedName: 'created_at',
-    onCreate: () => new Date(),
+    type: 'timestamp',
+    nullable: false,
   })
   createdAt: Date = new Date();
 
@@ -183,8 +214,11 @@ export class SessionEntity extends BaseEntity {
   @Property({
     fieldName: 'last_activity_at',
     serializedName: 'last_activity_at',
+    type: 'timestamp',
+    nullable: false,
   })
-  lastActivityAt!: Date;
+  @Index({ name: 'idx_last_activity' })
+  lastActivityAt: Date = new Date();
 
   /**
    * Timestamp when this session expires
@@ -195,9 +229,10 @@ export class SessionEntity extends BaseEntity {
   @Property({
     fieldName: 'expires_at',
     serializedName: 'expires_at',
-    type: 'datetime',
-    onCreate: () => new Date(Date.now() + 1000 * 60 * 60 * 24 * 15), // 15 days
+    type: 'timestamp',
+    nullable: false,
   })
+  @Index({ name: 'idx_session_expires_at' })
   expiresAt!: Date;
 
   /**
@@ -209,10 +244,10 @@ export class SessionEntity extends BaseEntity {
   @Property({
     fieldName: 'max_expires_at',
     serializedName: 'max_expires_at',
-    type: 'datetime',
-    onCreate: () => new Date(Date.now() + 1000 * 60 * 60 * 24 * 90), // 90 days
+    type: 'timestamp',
+    nullable: false,
   })
-  maxExpiresAt!: Date;
+  maxExpiresAt: Date = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000); // 90 days from now
 
   /**
    * Timestamp when the session was terminated (optional)
@@ -224,6 +259,7 @@ export class SessionEntity extends BaseEntity {
     fieldName: 'terminated_at',
     serializedName: 'terminated_at',
     nullable: true,
+    type: 'timestamp',
   })
   terminatedAt?: Date;
 
@@ -238,8 +274,11 @@ export class SessionEntity extends BaseEntity {
     fieldName: 'termination_reason',
     serializedName: 'termination_reason',
     nullable: true,
+    type: 'varchar',
+    length: 20,
   })
-  terminationReason?: string;
+  @Enum(() => SessionTerminationReason)
+  terminationReason?: SessionTerminationReason;
 
   /**
    * Whether this session should be remembered across browser sessions
@@ -247,39 +286,12 @@ export class SessionEntity extends BaseEntity {
    * Used for session persistence policy and security decisions
    * Affects session timeout and cleanup behavior
    */
-  // @Property({ name: 'is_remembered', default: false })
-  //isRemembered: boolean = false;
-
-  // @Property({ name: 'user_agent', nullable: true })
-  // userAgent?: string;
-
-  // @Property({ fieldName: 'identifier_id' })
-  // identifierId!: string;
-
-  // @ManyToOne({ fieldName: 'user_id' })
-  // user!: UserEntity;
-
-  // @Property({ fieldName: 'access_token', type: 'text' })
-  // accessToken!: string;
-
-  // @Property({ fieldName: 'refresh_token', type: 'text' })
-  // refreshToken!: string;
-
-  // @Property({ fieldName: 'user_agent', type: 'text', nullable: true })
-  // userAgent?: string;
-
-  // @Property({ fieldName: 'ip', nullable: true })
-  // ip?: string;
-
-  // @Property({ fieldName: 'scope', nullable: true })
-  // scope?: string;
-
-  // @Property({ fieldName: 'created_on' })
-  // createdOn!: Date;
-
-  // @Property({ fieldName: 'modified_on' })
-  // modifiedOn!: Date;
-
-  // @Property({ fieldName: 'expired_on' })
-  // expiredOn!: Date;
+  @Property({
+    fieldName: 'is_remembered',
+    serializedName: 'is_remembered',
+    type: 'boolean',
+    default: false,
+    nullable: false,
+  })
+  isRemembered: boolean = false;
 }

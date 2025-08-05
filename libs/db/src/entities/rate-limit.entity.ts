@@ -2,11 +2,20 @@ import {
   BaseEntity,
   Entity,
   EntityRepositoryType,
+  Enum,
+  Index,
   OptionalProps,
   PrimaryKey,
   Property,
+  Unique,
 } from '@mikro-orm/core';
 import { RateLimitRepository } from '../repositories/rate-limit.repository';
+
+export enum RateLimitScope {
+  GLOBAL = 'global',
+  USER = 'user',
+  IP = 'ip',
+}
 
 /**
  * Rate limit entity for managing request throttling and abuse prevention.
@@ -33,15 +42,25 @@ export class RateLimitEntity extends BaseEntity {
     | 'metadata'; // Additional context data (nullable)
 
   /** Unique identifier for the rate limit record */
-  @PrimaryKey()
-  id!: number;
+  @PrimaryKey({ type: 'bigint', autoincrement: true })
+  id!: bigint;
 
   /**
    * Unique identifier for the rate limit (userId, IP address, email, etc.).
    * Used to track and enforce rate limits for specific entities.
    * Examples: "user_123", "192.168.1.1", "john@example.com"
    */
-  @Property()
+  @Property({
+    fieldName: 'identifier',
+    serializedName: 'identifier',
+    type: 'varchar',
+    length: 255,
+    nullable: false,
+  })
+  @Unique({
+    name: 'unique_limit',
+    properties: ['identifier', 'limitType', 'scope'],
+  })
   identifier!: string; // e.g. userId, IP, email, etc.
 
   /**
@@ -49,7 +68,13 @@ export class RateLimitEntity extends BaseEntity {
    * Used to apply different rate limits for different operations.
    * Examples: "login", "otp_send", "api_request", "password_reset"
    */
-  @Property({ fieldName: 'limit_type', serializedName: 'limit_type' })
+  @Property({
+    fieldName: 'limit_type',
+    serializedName: 'limit_type',
+    type: 'varchar',
+    length: 50,
+    nullable: false,
+  })
   limitType!: string; // e.g. login, otp, api
 
   /**
@@ -57,21 +82,39 @@ export class RateLimitEntity extends BaseEntity {
    * Determines how the rate limit is applied and enforced.
    * Examples: "global" (system-wide), "user" (per user), "ip" (per IP)
    */
-  @Property()
-  scope!: string; // global/user/ip
+  @Property({
+    fieldName: 'scope',
+    serializedName: 'scope',
+    type: 'varchar',
+    length: 20,
+    nullable: false,
+  })
+  @Enum(() => RateLimitScope)
+  scope!: RateLimitScope; // global/user/ip
 
   /**
    * Current number of attempts made within the time window.
    * Incremented with each request and reset when window expires.
    */
-  @Property()
+  @Property({
+    fieldName: 'attempts',
+    serializedName: 'attempts',
+    type: 'int',
+    nullable: false,
+    default: 0,
+  })
   attempts!: number;
 
   /**
    * Maximum number of attempts allowed within the time window.
    * When attempts reach this limit, the identifier is blocked.
    */
-  @Property({ fieldName: 'max_attempts', serializedName: 'max_attempts' })
+  @Property({
+    fieldName: 'max_attempts',
+    serializedName: 'max_attempts',
+    type: 'int',
+    nullable: false,
+  })
   maxAttempts!: number;
 
   /**
@@ -79,21 +122,37 @@ export class RateLimitEntity extends BaseEntity {
    * Used to calculate window boundaries and reset attempts.
    * Examples: 60 (1 minute), 3600 (1 hour), 86400 (1 day)
    */
-  @Property({ fieldName: 'window_seconds', serializedName: 'window_seconds' })
+  @Property({
+    fieldName: 'window_seconds',
+    serializedName: 'window_seconds',
+    type: 'int',
+    nullable: false,
+  })
   windowSeconds!: number;
 
   /**
    * Start timestamp of the current rate limit window.
    * Used to determine if the window has expired and needs reset.
    */
-  @Property({ fieldName: 'window_start', serializedName: 'window_start' })
-  windowStart!: Date;
+  @Property({
+    fieldName: 'window_start',
+    serializedName: 'window_start',
+    type: 'timestamp',
+    nullable: false,
+  })
+  windowStart: Date = new Date();
 
   /**
    * End timestamp of the current rate limit window.
    * Used to determine when the window expires and attempts reset.
    */
-  @Property({ fieldName: 'window_end', serializedName: 'window_end' })
+  @Property({
+    fieldName: 'window_end',
+    serializedName: 'window_end',
+    type: 'timestamp',
+    nullable: false,
+  })
+  @Index({ name: 'idx_window_end' })
   windowEnd!: Date;
 
   /**
@@ -105,7 +164,9 @@ export class RateLimitEntity extends BaseEntity {
     fieldName: 'blocked_until',
     serializedName: 'blocked_until',
     nullable: true,
+    type: 'timestamp',
   })
+  @Index({ name: 'idx_blocked_until' })
   blockedUntil?: Date;
 
   /**
@@ -116,6 +177,8 @@ export class RateLimitEntity extends BaseEntity {
     fieldName: 'ip_address',
     serializedName: 'ip_address',
     nullable: true,
+    type: 'varchar',
+    length: 45,
   })
   ipAddress?: string;
 
@@ -124,7 +187,12 @@ export class RateLimitEntity extends BaseEntity {
    * Flexible storage for user agent, request details, error messages, etc.
    * Examples: {"user_agent": "Chrome/91.0", "reason": "brute_force"}
    */
-  @Property({ fieldName: 'json', nullable: true })
+  @Property({
+    fieldName: 'metadata',
+    serializedName: 'metadata',
+    type: 'json',
+    nullable: true,
+  })
   metadata?: Record<string, unknown>;
 
   /**
@@ -134,7 +202,8 @@ export class RateLimitEntity extends BaseEntity {
   @Property({
     fieldName: 'created_at',
     serializedName: 'created_at',
-    onCreate: () => new Date(),
+    type: 'timestamp',
+    nullable: false,
   })
   createdAt: Date = new Date();
 
@@ -145,7 +214,8 @@ export class RateLimitEntity extends BaseEntity {
   @Property({
     fieldName: 'updated_at',
     serializedName: 'updated_at',
-    onUpdate: () => new Date(),
+    type: 'timestamp',
+    nullable: false,
   })
   updatedAt: Date = new Date();
 }

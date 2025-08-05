@@ -1,3 +1,4 @@
+import { RateLimitScope } from '@app/db';
 import { IsNotEmpty } from 'class-validator';
 
 export class CreateRateLimitDto {
@@ -8,7 +9,7 @@ export class CreateRateLimitDto {
   limitType!: string;
 
   @IsNotEmpty()
-  scope!: string;
+  scope!: RateLimitScope;
 
   @IsNotEmpty()
   attempts!: number;

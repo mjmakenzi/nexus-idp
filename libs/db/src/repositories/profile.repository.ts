@@ -18,7 +18,6 @@ export class ProfileRepository extends EntityRepository<ProfileEntity> {
         | 'firstName'
         | 'lastName'
         | 'displayname'
-        | 'avatarUrl'
         | 'bio'
         | 'createdAt'
         | 'updatedAt'
@@ -28,7 +27,6 @@ export class ProfileRepository extends EntityRepository<ProfileEntity> {
         firstName: string | undefined;
         lastName: string | undefined;
         displayname: string | undefined;
-        avatarUrl: string | undefined;
         bio: string | undefined;
         createdAt: Date | undefined;
         updatedAt: Date | undefined;
@@ -46,7 +44,6 @@ export class ProfileRepository extends EntityRepository<ProfileEntity> {
           'firstName',
           'lastName',
           'displayname',
-          'avatarUrl',
           'bio',
           'createdAt',
           'updatedAt',
@@ -62,7 +59,6 @@ export class ProfileRepository extends EntityRepository<ProfileEntity> {
       firstName: result.firstName,
       lastName: result.lastName,
       displayname: result.displayname,
-      avatarUrl: result.avatarUrl,
       bio: result.bio,
       createdAt: result.createdAt,
       updatedAt: result.updatedAt,

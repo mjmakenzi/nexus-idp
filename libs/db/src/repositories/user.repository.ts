@@ -48,7 +48,7 @@ export class UserRepository extends EntityRepository<UserEntity> {
    * Update user
    */
   async updateUser(
-    id: number,
+    id: bigint,
     userData: Partial<UserEntity>,
   ): Promise<UserEntity | null> {
     const user = await this.findOne({ id });

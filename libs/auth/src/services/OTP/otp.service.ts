@@ -49,7 +49,7 @@ export class OtpService {
     // return { status: 'success', message: 'OTP sent successfully.' };
   }
 
-  async updateOtp(id: number, otp: OtpEntity) {
+  async updateOtp(id: bigint, otp: OtpEntity) {
     return await this.otpRepo.updateOtp(id, otp);
   }
 

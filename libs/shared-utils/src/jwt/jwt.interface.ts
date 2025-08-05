@@ -18,7 +18,7 @@ export interface IAccessPayload {
   sessionId: string; // Session ID
   data: {
     user: {
-      id: number;
+      id: bigint;
       username: string;
       display_name?: string;
       email?: string;
@@ -39,7 +39,7 @@ export interface IRefreshPayload {
   sessionId: string;
   data: {
     user: {
-      id: number;
+      id: bigint;
     };
   };
 }

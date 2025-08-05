@@ -1,18 +1,27 @@
 import {
   BaseEntity,
+  Cascade,
   Collection,
   Entity,
   EntityRepositoryType,
+  Enum,
+  Index,
   ManyToOne,
   OneToMany,
   OptionalProps,
   PrimaryKey,
   Property,
-  Unique,
 } from '@mikro-orm/core';
 import { DeviceRepository } from '../repositories/device.repository';
 import { SessionEntity } from './session.entity';
 import { UserEntity } from './user.entity';
+
+export enum DeviceType {
+  MOBILE = 'mobile',
+  DESKTOP = 'desktop',
+  TABLET = 'tablet',
+  UNKNOWN = 'unknown',
+}
 
 /**
  * Device entity for tracking and managing user devices across sessions.
@@ -42,14 +51,16 @@ export class DeviceEntity extends BaseEntity {
     | 'lastIpAddress'; // Last known IP address of this device (nullable)
 
   /** Unique identifier for the device record */
-  @PrimaryKey()
+  @PrimaryKey({ type: 'bigint', autoincrement: true })
   id!: number;
 
   /**
    * Associated user account that owns this device.
    * Many-to-one relationship - one user can have multiple devices.
+   * Cascade delete: When user is deleted, this device is automatically deleted.
    */
-  @ManyToOne({ fieldName: 'user_id' })
+  @ManyToOne({ fieldName: 'user_id', nullable: false })
+  @Index({ name: 'idx_user_trusted', properties: ['user', 'isTrusted'] })
   user!: UserEntity;
 
   /**
@@ -60,34 +71,52 @@ export class DeviceEntity extends BaseEntity {
   @Property({
     fieldName: 'device_fingerprint',
     serializedName: 'device_fingerprint',
+    type: 'varchar',
+    length: 255,
+    nullable: false,
+    unique: true,
   })
-  @Unique()
+  @Index({ name: 'idx_device_fingerprint' })
   deviceFingerprint!: string;
 
   /**
    * User-friendly name for the device (e.g., "John's iPhone", "Work Laptop").
    * Can be set by the user for easier device management.
-   * NOT USED
    */
-  // @Property({
-  //   fieldName: 'device_name',
-  //   serializedName: 'device_name',
-  //   nullable: true,
-  // })
-  // deviceName?: string;
+  @Property({
+    fieldName: 'device_name',
+    serializedName: 'device_name',
+    nullable: true,
+    type: 'varchar',
+    length: 200,
+  })
+  deviceName?: string;
 
   /**
    * Device category (mobile, desktop, tablet, etc.).
    * Used for device-specific features and security policies.
    */
-  @Property({ fieldName: 'device_type', serializedName: 'device_type' })
-  deviceType!: string; // mobile/desktop/tablet
+  @Property({
+    fieldName: 'device_type',
+    serializedName: 'device_type',
+    type: 'varchar',
+    length: 20,
+    nullable: false,
+  })
+  @Enum(() => DeviceType)
+  deviceType!: DeviceType;
 
   /**
    * Operating system name (e.g., "Windows", "macOS", "iOS", "Android").
    * Used for device-specific features and security policies.
    */
-  @Property({ fieldName: 'os_name', serializedName: 'os_name', nullable: true })
+  @Property({
+    fieldName: 'os_name',
+    serializedName: 'os_name',
+    nullable: true,
+    type: 'varchar',
+    length: 50,
+  })
   osName?: string;
 
   /**
@@ -98,6 +127,8 @@ export class DeviceEntity extends BaseEntity {
     fieldName: 'os_version',
     serializedName: 'os_version',
     nullable: true,
+    type: 'varchar',
+    length: 20,
   })
   osVersion?: string;
 
@@ -109,6 +140,8 @@ export class DeviceEntity extends BaseEntity {
     fieldName: 'browser_name',
     serializedName: 'browser_name',
     nullable: true,
+    type: 'varchar',
+    length: 50,
   })
   browserName?: string;
 
@@ -120,16 +153,22 @@ export class DeviceEntity extends BaseEntity {
     fieldName: 'browser_version',
     serializedName: 'browser_version',
     nullable: true,
+    type: 'varchar',
+    length: 20,
   })
   browserVersion?: string;
 
   /**
    * Additional device information stored as JSON.
    * Flexible storage for screen resolution, hardware specs, etc.
-   * NOT USED
    */
-  // @Property({ name: 'device_metadata', type: 'json', nullable: true })
-  // deviceMetadata?: Record<string, unknown>;
+  @Property({
+    fieldName: 'device_metadata',
+    serializedName: 'device_metadata',
+    type: 'json',
+    nullable: true,
+  })
+  deviceMetadata?: Record<string, unknown>;
 
   /**
    * Whether this device is trusted by the user.
@@ -140,6 +179,8 @@ export class DeviceEntity extends BaseEntity {
     fieldName: 'is_trusted',
     serializedName: 'is_trusted',
     default: false,
+    type: 'boolean',
+    nullable: false,
   })
   isTrusted: boolean = false;
 
@@ -147,33 +188,52 @@ export class DeviceEntity extends BaseEntity {
    * Whether this device is managed by an organization (MDM).
    * Managed devices may have different security policies.
    * Defaults to false for personal devices.
-   * NOT USED
    */
-  // @Property({ name: 'is_managed', default: false })
-  // isManaged: boolean = false;
+  @Property({
+    fieldName: 'is_managed',
+    serializedName: 'is_managed',
+    default: false,
+    type: 'boolean',
+    nullable: false,
+  })
+  isManaged: boolean = false;
 
   /**
    * Timestamp when this device was first seen/registered.
    * Used for device age tracking and security assessments.
-   * NOT USED
    */
-  // @Property({ name: 'first_seen_at' })
-  // firstSeenAt!: Date;
+  @Property({
+    fieldName: 'first_seen_at',
+    serializedName: 'first_seen_at',
+    type: 'timestamp',
+    nullable: false,
+  })
+  firstSeenAt: Date = new Date();
 
   /**
    * Timestamp when this device was last active.
    * Used for device activity tracking and cleanup of inactive devices.
    */
-  @Property({ fieldName: 'last_seen_at', serializedName: 'last_seen_at' })
-  lastSeenAt!: Date;
+  @Property({
+    fieldName: 'last_seen_at',
+    serializedName: 'last_seen_at',
+    type: 'timestamp',
+    nullable: false,
+  })
+  @Index({ name: 'idx_last_seen_at' })
+  lastSeenAt: Date = new Date();
 
   /**
    * Timestamp when this device was marked as trusted.
    * Used for trust relationship tracking and security audits.
-   * NOT USED
    */
-  // @Property({ name: 'trusted_at', nullable: true })
-  // trustedAt?: Date;
+  @Property({
+    fieldName: 'trusted_at',
+    serializedName: 'trusted_at',
+    type: 'timestamp',
+    nullable: true,
+  })
+  trustedAt?: Date;
 
   /**
    * Timestamp when this device was blocked/blacklisted.
@@ -183,6 +243,7 @@ export class DeviceEntity extends BaseEntity {
     fieldName: 'blocked_at',
     serializedName: 'blocked_at',
     nullable: true,
+    type: 'timestamp',
   })
   blockedAt?: Date;
 
@@ -194,6 +255,8 @@ export class DeviceEntity extends BaseEntity {
     fieldName: 'block_reason',
     serializedName: 'block_reason',
     nullable: true,
+    type: 'varchar',
+    length: 500,
   })
   blockReason?: string;
 
@@ -205,6 +268,7 @@ export class DeviceEntity extends BaseEntity {
     fieldName: 'user_agent',
     serializedName: 'user_agent',
     nullable: true,
+    type: 'text',
   })
   userAgent?: string;
 
@@ -216,6 +280,8 @@ export class DeviceEntity extends BaseEntity {
     fieldName: 'last_ip_address',
     serializedName: 'last_ip_address',
     nullable: true,
+    type: 'varchar',
+    length: 45,
   })
   lastIpAddress?: string;
 
@@ -226,7 +292,8 @@ export class DeviceEntity extends BaseEntity {
   @Property({
     fieldName: 'created_at',
     serializedName: 'created_at',
-    onCreate: () => new Date(),
+    type: 'timestamp',
+    nullable: false,
   })
   createdAt: Date = new Date();
 
@@ -237,7 +304,8 @@ export class DeviceEntity extends BaseEntity {
   @Property({
     fieldName: 'updated_at',
     serializedName: 'updated_at',
-    onUpdate: () => new Date(),
+    type: 'timestamp',
+    nullable: false,
   })
   updatedAt: Date = new Date();
 
@@ -249,7 +317,10 @@ export class DeviceEntity extends BaseEntity {
    * Active sessions associated with this device.
    * One-to-many relationship - one device can have multiple active sessions.
    * Used for session management and device activity tracking.
+   * Cascade delete: When device is deleted, all sessions are automatically deleted.
    */
-  @OneToMany(() => SessionEntity, (session) => session.device)
+  @OneToMany(() => SessionEntity, (session) => session.device, {
+    cascade: [Cascade.REMOVE],
+  })
   sessions = new Collection<SessionEntity>(this);
 }

@@ -1,12 +1,13 @@
 import {
   BaseEntity,
+  Cascade,
   Entity,
   EntityRepositoryType,
+  Index,
   OneToOne,
   OptionalProps,
   PrimaryKey,
   Property,
-  SerializeOptions,
 } from '@mikro-orm/core';
 import { ProfileRepository } from '../repositories/profile.repository';
 import { UserEntity } from './user.entity';
@@ -39,93 +40,108 @@ export class ProfileEntity extends BaseEntity {
     | 'socialLinks'; // Social media profile links
 
   /** Unique identifier for the profile record */
-  @PrimaryKey()
-  id!: number;
+  @PrimaryKey({ type: 'bigint', autoincrement: true })
+  id!: bigint;
 
-  /**
-   * Associated user account (one-to-one relationship).
-   * Each user has exactly one profile.
-   */
-  @OneToOne(() => UserEntity, { fieldName: 'user_id' })
+  @OneToOne(() => UserEntity, {
+    fieldName: 'user_id',
+    nullable: false,
+    owner: false,
+  })
   user!: UserEntity;
 
-  /**
-   * User's first/given name.
-   * Used for personalization and formal communications.
-   */
+  @Property({
+    fieldName: 'user_data_key',
+    serializedName: 'user-data-key',
+    nullable: false,
+    type: 'varchar',
+    length: 100,
+    unique: true,
+  })
+  @Index({ name: 'idx_user_data_key' })
+  userDataKey!: string;
+
   @Property({
     fieldName: 'first_name',
     serializedName: 'first-name',
     nullable: true,
+    type: 'varchar',
+    length: 100,
   })
   firstName?: string;
 
-  /**
-   * User's last/family name.
-   * Used for personalization and formal communications.
-   */
   @Property({
     fieldName: 'last_name',
     serializedName: 'last-name',
     nullable: true,
+    type: 'varchar',
+    length: 100,
   })
   lastName?: string;
 
-  /**
-   * Public display name shown to other users.
-   * Defaults to "کاربر تازه‌وارد" (New User in Persian) for new accounts.
-   * Can be customized by the user.
-   */
   @Property({
     fieldName: 'display_name',
     serializedName: 'display-name',
     nullable: true,
-    default: 'کاربر تازه‌وارد',
+    type: 'varchar',
+    length: 200,
   })
+  @Index({ name: 'idx_display_name' })
   displayname?: string;
 
-  /**
-   * URL to the user's profile picture/avatar.
-   * Used for visual identification and personalization.
-   */
   @Property({
-    fieldName: 'avatar_url',
-    serializedName: 'avatar-url',
-    nullable: true,
-  })
-  avatarUrl?: string;
-
-  /**
-   * User's biography or personal description.
-   * Long text field for self-introduction and personal branding.
-   */
-  @Property({
+    fieldName: 'bio',
+    serializedName: 'bio',
     nullable: true,
     type: 'text',
-    serializer: (value: string) => (value ? value.trim() : value),
+    length: 1000,
   })
   bio?: string;
 
-  /**
-   * User's date of birth.
-   * Used for age verification, birthday features, and compliance.
-   * NOT USED
-   */
-  // @Property({ name: 'date_of_birth', nullable: true })
-  // dateOfBirth?: Date;
+  @Property({
+    fieldName: 'date_of_birth',
+    serializedName: 'date-of-birth',
+    nullable: true,
+    type: 'date',
+  })
+  dateOfBirth?: Date;
 
-  /**
-   * User's gender identity.
-   * Used for personalization and demographic analytics.
-   * NOT USED
-   */
-  // @Property({ nullable: true })
-  // gender?: string;
+  @Property({
+    fieldName: 'gender',
+    serializedName: 'gender',
+    nullable: true,
+    type: 'varchar',
+    length: 50,
+  })
+  gender?: string;
 
-  /**
-   * Social media profile links (Twitter, LinkedIn, Instagram, etc.).
-   * Stored as JSON object with platform names as keys and URLs as values.
-   */
+  @Property({
+    fieldName: 'avatar_file_name',
+    serializedName: 'avatar-file-name',
+    nullable: true,
+    type: 'varchar',
+    length: 500,
+  })
+  avatarFileName?: string;
+
+  @Property({
+    fieldName: 'cover_file_name',
+    serializedName: 'cover-file-name',
+    nullable: true,
+    type: 'varchar',
+    length: 500,
+  })
+  coverFileName?: string;
+
+  @Property({
+    fieldName: 'website',
+    serializedName: 'website',
+    nullable: true,
+    type: 'varchar',
+    length: 500,
+  })
+  website?: string;
+
   @Property({
     fieldName: 'social_links',
     serializedName: 'social-links',
@@ -134,88 +150,74 @@ export class ProfileEntity extends BaseEntity {
   })
   socialLinks?: Record<string, string>;
 
-  /**
-   * Primary address line for shipping, billing, or location services.
-   * Used for e-commerce, delivery, and location-based features.
-   * NOT USED
-   */
-  // @Property({ name: 'address_line1', nullable: true })
-  // addressLine1?: string;
+  @Property({
+    fieldName: 'apple_uid',
+    serializedName: 'apple-uid',
+    nullable: true,
+    type: 'varchar',
+    length: 100,
+  })
+  appleUid?: string;
 
-  /**
-   * Secondary address line (apartment, suite, etc.).
-   * Additional address details for precise location.
-   * NOT USED
-   */
-  // @Property({ name: 'address_line2', nullable: true })
-  // addressLine2?: string;
+  @Property({
+    fieldName: 'google_id',
+    serializedName: 'google-id',
+    nullable: true,
+    type: 'varchar',
+    length: 100,
+  })
+  googleId?: string;
 
-  /**
-   * City of residence.
-   * Used for location-based services and regional features.
-   * NOT USED
-   */
-  // @Property({ nullable: true })
-  // city?: string;
+  @Property({
+    fieldName: 'timezone',
+    serializedName: 'timezone',
+    nullable: true,
+    type: 'varchar',
+    default: 'utc',
+    length: 50,
+  })
+  timezone?: string;
 
-  /**
-   * Postal/ZIP code.
-   * Used for shipping, billing, and location services.
-   * NOT USED
-   */
-  // @Property({ name: 'postal_code', nullable: true })
-  // postalCode?: string;
+  @Property({
+    fieldName: 'locale',
+    serializedName: 'locale',
+    nullable: true,
+    default: 'en-US',
+    type: 'varchar',
+    length: 10,
+  })
+  locale?: string;
 
-  /**
-   * Country of residence.
-   * Used for internationalization, compliance, and regional features.
-   * NOT USED
-   */
-  // @Property({ nullable: true })
-  // country?: string;
+  @Property({
+    fieldName: 'preferred_language',
+    serializedName: 'preferred-language',
+    nullable: true,
+    type: 'varchar',
+    length: 10,
+  })
+  preferredLanguage?: string;
 
-  /**
-   * User's timezone (e.g., "America/New_York", "Europe/London").
-   * Used for displaying local times and scheduling features.
-   * NOT USED
-   */
-  // @Property({ nullable: true })
-  // timezone?: string;
+  @Property({
+    fieldName: 'preferences',
+    serializedName: 'preferences',
+    type: 'json',
+    nullable: true,
+  })
+  preferences?: Record<string, unknown>;
 
-  /**
-   * User's locale preference (e.g., "en-US", "fa-IR").
-   * Used for internationalization and content localization.
-   * NOT USED
-   */
-  // @Property({ nullable: true })
-  // locale?: string;
-
-  /**
-   * User's preferred language for content and communications.
-   * Used for multilingual support and content delivery.
-   * NOT USED
-   */
-  // @Property({ name: 'preferred_language', nullable: true })
-  // preferredLanguage?: string;
-
-  /**
-   * User preferences and settings stored as JSON.
-   * Flexible storage for UI preferences, notification settings, etc.
-   */
-  // @Property({ type: 'json', nullable: true })
-  // preferences?: Record<string, unknown>;
-
-  /**
-   * Timestamp when the profile was created.
-   * Automatically set on entity creation.
-   */
-  @Property({ fieldName: 'created_at', onCreate: () => new Date() })
+  @Property({
+    fieldName: 'created_at',
+    serializedName: 'created-at',
+    type: 'timestamp',
+    nullable: false,
+  })
   createdAt: Date = new Date();
 
-  /**
-   * Timestamp when the profile was last updated.
-   * Automatically updated on any entity modification.
-   */
-  @Property({ fieldName: 'updated_at', onUpdate: () => new Date() })
+  @Property({
+    fieldName: 'updated_at',
+    serializedName: 'updated-at',
+    type: 'timestamp',
+    nullable: false,
+  })
   updatedAt: Date = new Date();
 }

@@ -16,13 +16,14 @@ export class OtpRepository extends EntityRepository<OtpEntity> {
       expiresAt: expiresAt,
       attempts: 0,
       maxAttempts: 5,
+      isUsed: false,
     });
 
     await this.em.persistAndFlush(otpEntity);
     return otpEntity;
   }
 
-  async updateOtp(id: number, otp: OtpEntity) {
+  async updateOtp(id: bigint, otp: OtpEntity) {
     return await this.nativeUpdate({ id }, otp);
   }
 

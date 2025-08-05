@@ -1,4 +1,4 @@
-import { SessionEntity } from '@app/db';
+import { SessionEntity, Severity } from '@app/db';
 import { UserEntity } from '@app/db';
 import { IsNotEmpty } from 'class-validator';
 import { FastifyRequest } from 'fastify';
@@ -20,5 +20,5 @@ export class CreateSecurityEventDto {
   eventCategory!: string;
 
   @IsNotEmpty()
-  severity!: string;
+  severity!: Severity;
 }

@@ -2,6 +2,7 @@ import {
   BaseEntity,
   Entity,
   EntityRepositoryType,
+  Index,
   ManyToOne,
   OptionalProps,
   PrimaryKey,
@@ -37,25 +38,35 @@ export class ApiKeyEntity extends BaseEntity {
     | 'lastUsedAt' // Last usage timestamp (nullable)
     | 'lastUsedIp' // IP address of last usage (nullable)
     | 'expiresAt' // Expiration timestamp (nullable)
-    | 'isActive' // Whether key is active (defaults to true)
     | 'createdBy'; // Who created the API key (nullable)
 
   /** Unique identifier for the API key record */
-  @PrimaryKey()
-  id!: number;
+  @PrimaryKey({ type: 'bigint', autoincrement: true })
+  id!: bigint;
 
   /**
    * Associated user account that owns this API key.
    * Many-to-one relationship - one user can have multiple API keys.
+   * Cascade delete: When user is deleted, all API keys are automatically deleted.
    */
-  @ManyToOne(() => UserEntity)
+  @ManyToOne(() => UserEntity, {
+    fieldName: 'user_id',
+    nullable: false,
+  })
+  @Index({ name: 'idx_api_key_user_active', properties: ['user', 'isActive'] })
   user!: UserEntity;
 
   /**
    * Human-readable name for the API key (e.g., "Production API", "Testing Key").
    * Used for key management and identification purposes.
    */
-  @Property()
+  @Property({
+    fieldName: 'name',
+    serializedName: 'name',
+    type: 'varchar',
+    length: 200,
+    nullable: false,
+  })
   name!: string;
 
   /**
@@ -63,8 +74,15 @@ export class ApiKeyEntity extends BaseEntity {
    * Used for key identification and management without exposing the actual key.
    * Must be unique across all API keys.
    */
-  @Property({ fieldName: 'key_id', serializedName: 'key_id' })
+  @Property({
+    fieldName: 'key_id',
+    serializedName: 'key_id',
+    type: 'varchar',
+    length: 50,
+    nullable: false,
+  })
   @Unique()
+  @Index({ name: 'idx_key_id' })
   keyId!: string;
 
   /**
@@ -72,7 +90,13 @@ export class ApiKeyEntity extends BaseEntity {
    * Never store plain text API keys - only hashed values.
    * Used for key validation during API requests.
    */
-  @Property({ fieldName: 'key_hash', serializedName: 'key_hash' })
+  @Property({
+    fieldName: 'key_hash',
+    serializedName: 'key_hash',
+    type: 'varchar',
+    length: 255,
+    nullable: false,
+  })
   keyHash!: string;
 
   /**
@@ -80,7 +104,13 @@ export class ApiKeyEntity extends BaseEntity {
    * Used to identify the key type and owner without exposing the full key.
    * Example: "ak_live_", "ak_test_"
    */
-  @Property({ fieldName: 'key_prefix', serializedName: 'key_prefix' })
+  @Property({
+    fieldName: 'key_prefix',
+    serializedName: 'key_prefix',
+    type: 'varchar',
+    length: 20,
+    nullable: false,
+  })
   keyPrefix!: string;
 
   /**
@@ -130,6 +160,7 @@ export class ApiKeyEntity extends BaseEntity {
     fieldName: 'last_used_at',
     serializedName: 'last_used_at',
     nullable: true,
+    type: 'timestamp',
   })
   lastUsedAt?: Date;
 
@@ -141,6 +172,8 @@ export class ApiKeyEntity extends BaseEntity {
     fieldName: 'last_used_ip',
     serializedName: 'last_used_ip',
     nullable: true,
+    type: 'varchar',
+    length: 45,
   })
   lastUsedIp?: string;
 
@@ -153,6 +186,7 @@ export class ApiKeyEntity extends BaseEntity {
     fieldName: 'expires_at',
     serializedName: 'expires_at',
     nullable: true,
+    type: 'timestamp',
   })
   expiresAt?: Date;
 
@@ -165,8 +199,10 @@ export class ApiKeyEntity extends BaseEntity {
     fieldName: 'is_active',
     serializedName: 'is_active',
     default: true,
+    type: 'boolean',
+    nullable: false,
   })
-  isActive: boolean = true;
+  isActive!: boolean;
 
   /**
    * Timestamp when the API key was created.
@@ -175,7 +211,8 @@ export class ApiKeyEntity extends BaseEntity {
   @Property({
     fieldName: 'created_at',
     serializedName: 'created_at',
-    onCreate: () => new Date(),
+    type: 'timestamp',
+    nullable: false,
   })
   createdAt: Date = new Date();
 
@@ -187,6 +224,8 @@ export class ApiKeyEntity extends BaseEntity {
     fieldName: 'created_by',
     serializedName: 'created_by',
     nullable: true,
+    type: 'varchar',
+    length: 100,
   })
   createdBy?: string;
 }

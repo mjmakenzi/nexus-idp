@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { DeviceType } from '@app/db/entities/device.entity';
 import * as bcrypt from 'bcrypt';
 import { randomBytes, randomUUID } from 'crypto';
 import { FastifyRequest } from 'fastify';
@@ -83,7 +84,7 @@ export class CommonService {
   /**
    * Determine if the requester is using a mobile or desktop device based on user agent.
    */
-  static getRequesterDeviceType(req: FastifyRequest): string {
+  static getRequesterDeviceType(req: FastifyRequest): DeviceType {
     const ua = this.getRequesterUserAgent(req).toLowerCase();
     const deviceType = this.getMobileTokenRegex()
       ? ua.match(this.getMobileTokenRegex())
@@ -91,9 +92,9 @@ export class CommonService {
 
     return deviceType
       ? deviceType.groups?.browserName
-        ? 'browser'
-        : 'mobile'
-      : 'desktop';
+        ? DeviceType.DESKTOP
+        : DeviceType.MOBILE
+      : DeviceType.UNKNOWN;
   }
 
   /**

@@ -2,6 +2,8 @@ import {
   BaseEntity,
   Entity,
   EntityRepositoryType,
+  Enum,
+  Index,
   ManyToOne,
   OptionalProps,
   PrimaryKey,
@@ -9,6 +11,14 @@ import {
 } from '@mikro-orm/core';
 import { SecurityEventRepository } from '../repositories/security-event.repository';
 import { UserEntity } from './user.entity';
+
+export enum Severity {
+  INFO = 'info',
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  CRITICAL = 'critical',
+}
 
 /**
  * Security event entity for tracking and monitoring security-related activities.
@@ -46,37 +56,62 @@ export class SecurityEventEntity extends BaseEntity {
     | 'resolvedAt'; // When event was resolved (nullable)
 
   /** Unique identifier for the security event record */
-  @PrimaryKey()
-  id!: number;
+  @PrimaryKey({ type: 'bigint', autoincrement: true })
+  id!: bigint;
 
   /**
    * Associated user account involved in the security event.
    * Many-to-one relationship - nullable for system-wide events.
    * Used for user-specific security monitoring and incident response.
+   * Set null on delete: When user is deleted, user_id becomes null but event remains for audit.
    */
-  @ManyToOne(() => UserEntity, { nullable: true })
+  @ManyToOne(() => UserEntity, { fieldName: 'user_id', nullable: true })
+  @Index({ name: 'idx_user_occurred', properties: ['user', 'occurredAt'] })
   user?: UserEntity;
 
   /**
    * Specific type of security event (login, logout, password_change, etc.).
    * Used for event categorization and automated response triggers.
    */
-  @Property({ fieldName: 'event_type', serializedName: 'event_type' })
+  @Property({
+    fieldName: 'event_type',
+    serializedName: 'event_type',
+    type: 'varchar',
+    length: 50,
+    nullable: false,
+  })
   eventType!: string; // e.g. login/logout/password_change
 
   /**
    * Category of the security event (auth, account, security, etc.).
    * Used for event grouping, filtering, and reporting.
    */
-  @Property({ fieldName: 'event_category', serializedName: 'event_category' })
+  @Property({
+    fieldName: 'event_category',
+    serializedName: 'event_category',
+    type: 'varchar',
+    length: 20,
+    nullable: false,
+  })
   eventCategory!: string; // e.g. auth/account/security
 
   /**
    * Severity level of the security event (info, low, medium, high, critical).
    * Used for prioritization, alerting, and response planning.
    */
-  @Property({ fieldName: 'severity', serializedName: 'severity' })
-  severity!: string; // e.g. info/low/medium/high/critical
+  @Property({
+    fieldName: 'severity',
+    serializedName: 'severity',
+    type: 'varchar',
+    length: 20,
+    nullable: false,
+  })
+  @Enum(() => Severity)
+  @Index({
+    name: 'idx_severity_unresolved',
+    properties: ['severity', 'isResolved'],
+  })
+  severity!: Severity; // e.g. info/low/medium/high/critical
 
   /**
    * Risk assessment score for the security event.
@@ -85,9 +120,12 @@ export class SecurityEventEntity extends BaseEntity {
   @Property({
     fieldName: 'risk_score',
     serializedName: 'risk_score',
+    type: 'tinyint',
     nullable: true,
+    unsigned: true,
   })
-  riskScore?: string;
+  @Index({ name: 'idx_risk_score' })
+  riskScore?: number;
 
   /**
    * Additional context data for the security event stored as JSON.
@@ -110,6 +148,8 @@ export class SecurityEventEntity extends BaseEntity {
     fieldName: 'ip_address',
     serializedName: 'ip_address',
     nullable: true,
+    type: 'varchar',
+    length: 45,
   })
   ipAddress?: string;
 
@@ -134,6 +174,7 @@ export class SecurityEventEntity extends BaseEntity {
     fieldName: 'user_agent',
     serializedName: 'user_agent',
     nullable: true,
+    type: 'text',
   })
   userAgent?: string;
 
@@ -145,6 +186,8 @@ export class SecurityEventEntity extends BaseEntity {
     fieldName: 'session_id',
     serializedName: 'session_id',
     nullable: true,
+    type: 'varchar',
+    length: 36,
   })
   sessionId?: string;
 
@@ -152,8 +195,13 @@ export class SecurityEventEntity extends BaseEntity {
    * Timestamp when the security event occurred.
    * Used for chronological ordering and time-based analysis.
    */
-  @Property({ fieldName: 'occurred_at', serializedName: 'occurred_at' })
-  occurredAt!: Date;
+  @Property({
+    fieldName: 'occurred_at',
+    serializedName: 'occurred_at',
+    type: 'timestamp',
+    nullable: false,
+  })
+  occurredAt: Date = new Date();
 
   /**
    * Whether this security event requires manual action or investigation.
@@ -163,6 +211,8 @@ export class SecurityEventEntity extends BaseEntity {
     fieldName: 'requires_action',
     serializedName: 'requires_action',
     default: false,
+    type: 'boolean',
+    nullable: false,
   })
   requiresAction: boolean = false;
 
@@ -174,6 +224,8 @@ export class SecurityEventEntity extends BaseEntity {
     fieldName: 'is_resolved',
     serializedName: 'is_resolved',
     default: false,
+    type: 'boolean',
+    nullable: false,
   })
   isResolved: boolean = false;
 
@@ -185,6 +237,8 @@ export class SecurityEventEntity extends BaseEntity {
     fieldName: 'resolved_by',
     serializedName: 'resolved_by',
     nullable: true,
+    type: 'varchar',
+    length: 100,
   })
   resolvedBy?: string;
 
@@ -196,6 +250,7 @@ export class SecurityEventEntity extends BaseEntity {
     fieldName: 'resolved_at',
     serializedName: 'resolved_at',
     nullable: true,
+    type: 'timestamp',
   })
   resolvedAt?: Date;
 }

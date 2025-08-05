@@ -44,12 +44,12 @@ export class DeviceRepository extends EntityRepository<DeviceEntity> {
     return this.find({ user: userId, isTrusted: true });
   }
 
-  /**
-   * Find devices by device type (mobile, desktop, tablet)
-   */
-  async findByDeviceType(deviceType: string): Promise<DeviceEntity[]> {
-    return this.find({ deviceType });
-  }
+  // /**
+  //  * Find devices by device type (mobile, desktop, tablet)
+  //  */
+  // async findByDeviceType(deviceType: string): Promise<DeviceEntity[]> {
+  //   return this.find({ deviceType: deviceType aeType });
+  // }
 
   /**
    * Find devices by operating system
@@ -205,9 +205,9 @@ export class DeviceRepository extends EntityRepository<DeviceEntity> {
   /**
    * Count devices by device type
    */
-  async countByDeviceType(deviceType: string): Promise<number> {
-    return this.count({ deviceType });
-  }
+  // async countByDeviceType(deviceType: string): Promise<number> {
+  //   return this.count({ deviceType });
+  // }
 
   /**
    * Count devices by operating system
@@ -226,36 +226,36 @@ export class DeviceRepository extends EntityRepository<DeviceEntity> {
   /**
    * Get device statistics for a user
    */
-  async getDeviceStats(userId: number): Promise<{
-    total: number;
-    trusted: number;
-    mobile: number;
-    desktop: number;
-    tablet: number;
-    recentlyActive: number;
-  }> {
-    const [total, trusted, mobile, desktop, tablet, recentlyActive] =
-      await Promise.all([
-        this.countByUser(userId),
-        this.countTrustedByUser(userId),
-        this.countByDeviceType('mobile'),
-        this.countByDeviceType('desktop'),
-        this.countByDeviceType('tablet'),
-        this.count({
-          user: userId,
-          lastSeenAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Last 7 days
-        }),
-      ]);
+  // async getDeviceStats(userId: number): Promise<{
+  //   total: number;
+  //   trusted: number;
+  //   mobile: number;
+  //   desktop: number;
+  //   tablet: number;
+  //   recentlyActive: number;
+  // }> {
+  //   const [total, trusted, mobile, desktop, tablet, recentlyActive] =
+  //     await Promise.all([
+  //       this.countByUser(userId),
+  //       this.countTrustedByUser(userId),
+  //       this.countByDeviceType('mobile'),
+  //       this.countByDeviceType('desktop'),
+  //       this.countByDeviceType('tablet'),
+  //       this.count({
+  //         user: userId,
+  //         lastSeenAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Last 7 days
+  //       }),
+  //     ]);
 
-    return {
-      total,
-      trusted,
-      mobile,
-      desktop,
-      tablet,
-      recentlyActive,
-    };
-  }
+  //   return {
+  //     total,
+  //     trusted,
+  //     mobile,
+  //     desktop,
+  //     tablet,
+  //     recentlyActive,
+  //   };
+  // }
 
   /**
    * Find devices with active sessions

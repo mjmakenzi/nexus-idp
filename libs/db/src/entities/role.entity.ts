@@ -3,6 +3,7 @@ import {
   Collection,
   Entity,
   EntityRepositoryType,
+  Index,
   OneToMany,
   OptionalProps,
   PrimaryKey,
@@ -37,14 +38,20 @@ export class RoleEntity extends BaseEntity {
     | 'isSystem'; // Whether this is a system role (defaults to false)
 
   /** Unique identifier for the role record */
-  @PrimaryKey()
-  id!: number;
+  @PrimaryKey({ type: 'bigint', autoincrement: true })
+  id!: bigint;
 
   /**
    * Human-readable name for the role (e.g., "Administrator", "User", "Moderator").
    * Used for display purposes and user interface.
    */
-  @Property({ fieldName: 'name', serializedName: 'name' })
+  @Property({
+    fieldName: 'name',
+    serializedName: 'name',
+    type: 'varchar',
+    length: 100,
+    nullable: false,
+  })
   name!: string;
 
   /**
@@ -52,8 +59,15 @@ export class RoleEntity extends BaseEntity {
    * Used for programmatic role checks and API operations.
    * Must be unique across all roles.
    */
-  @Property({ fieldName: 'code', serializedName: 'code' })
+  @Property({
+    fieldName: 'code',
+    serializedName: 'code',
+    type: 'varchar',
+    length: 50,
+    nullable: false,
+  })
   @Unique()
+  @Index({ name: 'idx_code' })
   code!: string;
 
   /**
@@ -64,6 +78,7 @@ export class RoleEntity extends BaseEntity {
     fieldName: 'description',
     serializedName: 'description',
     nullable: true,
+    type: 'text',
   })
   description?: string;
 
@@ -76,6 +91,7 @@ export class RoleEntity extends BaseEntity {
     fieldName: 'permissions',
     serializedName: 'permissions',
     type: 'json',
+    nullable: false,
   })
   permissions!: string[];
 
@@ -88,8 +104,11 @@ export class RoleEntity extends BaseEntity {
     fieldName: 'is_default',
     serializedName: 'is_default',
     default: false,
+    type: 'boolean',
+    nullable: false,
   })
-  isDefault: boolean = false;
+  @Index({ name: 'idx_is_default' })
+  isDefault!: boolean;
 
   /**
    * Whether this is a system role that cannot be modified or deleted.
@@ -100,8 +119,10 @@ export class RoleEntity extends BaseEntity {
     fieldName: 'is_system',
     serializedName: 'is_system',
     default: false,
+    type: 'boolean',
+    nullable: false,
   })
-  isSystem: boolean = false;
+  isSystem!: boolean;
 
   /**
    * Timestamp when the role was created.
@@ -110,7 +131,8 @@ export class RoleEntity extends BaseEntity {
   @Property({
     fieldName: 'created_at',
     serializedName: 'created_at',
-    onCreate: () => new Date(),
+    type: 'timestamp',
+    nullable: false,
   })
   createdAt: Date = new Date();
 
@@ -121,7 +143,8 @@ export class RoleEntity extends BaseEntity {
   @Property({
     fieldName: 'updated_at',
     serializedName: 'updated_at',
-    onUpdate: () => new Date(),
+    type: 'timestamp',
+    nullable: false,
   })
   updatedAt: Date = new Date();
 

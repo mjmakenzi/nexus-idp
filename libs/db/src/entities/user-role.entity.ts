@@ -1,10 +1,12 @@
 import {
   Entity,
   EntityRepositoryType,
+  Index,
   ManyToOne,
   OptionalProps,
   PrimaryKey,
   Property,
+  Unique,
 } from '@mikro-orm/core';
 import { UserRoleRepository } from '../repositories/user-role.repository';
 import { RoleEntity } from './role.entity';
@@ -51,16 +53,18 @@ export class UserRoleEntity {
    * Auto-generated primary key for database operations
    * Each record represents a single role assignment to a user
    */
-  @PrimaryKey()
-  id!: number;
+  @PrimaryKey({ type: 'bigint', autoincrement: true })
+  id!: bigint;
 
   /**
    * The user who is assigned this role
    * Required relationship - every role assignment must belong to a user
    * Used for user authentication and authorization decisions
    * Links to UserEntity for user information and validation
+   * Cascade delete: When user is deleted, all role assignments are automatically deleted.
    */
-  @ManyToOne(() => UserEntity)
+  @ManyToOne(() => UserEntity, { fieldName: 'user_id', nullable: false })
+  @Unique({ name: 'unique_user_role', properties: ['user', 'role'] })
   user!: UserEntity;
 
   /**
@@ -68,8 +72,9 @@ export class UserRoleEntity {
    * Required relationship - every assignment must reference a valid role
    * Used for permission checking and access control decisions
    * Links to RoleEntity for role definition and permissions
+   * Cascade delete: When role is deleted, all role assignments are automatically deleted.
    */
-  @ManyToOne(() => RoleEntity)
+  @ManyToOne(() => RoleEntity, { fieldName: 'role_id', nullable: false })
   role!: RoleEntity;
 
   /**
@@ -78,8 +83,13 @@ export class UserRoleEntity {
    * Used for audit trail and role assignment history
    * Required field - all role assignments must have a grant timestamp
    */
-  @Property({ fieldName: 'granted_at', serializedName: 'granted_at' })
-  grantedAt!: Date;
+  @Property({
+    fieldName: 'granted_at',
+    serializedName: 'granted_at',
+    type: 'timestamp',
+    nullable: false,
+  })
+  grantedAt: Date = new Date();
 
   /**
    * Timestamp when this role assignment expires (optional)
@@ -92,7 +102,9 @@ export class UserRoleEntity {
     fieldName: 'expires_at',
     serializedName: 'expires_at',
     nullable: true,
+    type: 'timestamp',
   })
+  @Index({ name: 'idx_user_role_expires_at' })
   expiresAt?: Date;
 
   /**
@@ -106,6 +118,8 @@ export class UserRoleEntity {
     fieldName: 'granted_by',
     serializedName: 'granted_by',
     nullable: true,
+    type: 'varchar',
+    length: 100,
   })
   grantedBy?: string;
 
@@ -120,6 +134,7 @@ export class UserRoleEntity {
     fieldName: 'grant_reason',
     serializedName: 'grant_reason',
     nullable: true,
+    type: 'text',
   })
   grantReason?: string;
 }

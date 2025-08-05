@@ -3,6 +3,7 @@ import {
   RevokedTokenEntity,
   RevokedTokenRepository,
   SessionEntity,
+  TokenType,
   UserEntity,
 } from '@app/db';
 
@@ -16,7 +17,7 @@ export class RevokedTokenService {
     const createRevokedTokenDto: Partial<RevokedTokenEntity> = {
       user: session.user,
       tokenHash: session.refreshTokenHash,
-      tokenType: 'refresh',
+      tokenType: TokenType.REFRESH,
       expiresAt: session.expiresAt,
       revokedAt: new Date(),
       userAgent: session.userAgent,

@@ -38,7 +38,7 @@ export class UserService {
     return await this.userRepository.getUserById(id);
   }
 
-  async updateUser(id: number, dto: Partial<UserEntity>) {
+  async updateUser(id: bigint, dto: Partial<UserEntity>) {
     return await this.userRepository.updateUser(id, dto);
   }
 }

@@ -1,12 +1,14 @@
 import { EntityRepository } from '@mikro-orm/postgresql';
-import { SecurityEventEntity } from '../entities/security-event.entity';
-import { UserEntity } from '../entities/user.entity';
+import {
+  SecurityEventEntity,
+  Severity,
+} from '../entities/security-event.entity';
 
 export class SecurityEventRepository extends EntityRepository<SecurityEventEntity> {
   /**
    * Find security event by ID
    */
-  async findById(id: number): Promise<SecurityEventEntity | null> {
+  async findById(id: bigint): Promise<SecurityEventEntity | null> {
     return this.findOne({ id });
   }
 
@@ -36,8 +38,8 @@ export class SecurityEventRepository extends EntityRepository<SecurityEventEntit
   /**
    * Find security events by severity level
    */
-  async findBySeverity(severity: string): Promise<SecurityEventEntity[]> {
-    return this.find({ severity });
+  async findBySeverity(severity: Severity): Promise<SecurityEventEntity[]> {
+    return this.find({ severity: severity });
   }
 
   /**
@@ -109,7 +111,7 @@ export class SecurityEventRepository extends EntityRepository<SecurityEventEntit
    */
   async findHighSeverity(): Promise<SecurityEventEntity[]> {
     return this.find({
-      severity: { $in: ['high', 'critical'] },
+      severity: { $in: [Severity.HIGH, Severity.CRITICAL] },
     });
   }
 
@@ -193,7 +195,7 @@ export class SecurityEventRepository extends EntityRepository<SecurityEventEntit
   /**
    * Update risk score for a security event
    */
-  async updateRiskScore(id: number, riskScore: string): Promise<void> {
+  async updateRiskScore(id: bigint, riskScore: number): Promise<void> {
     await this.nativeUpdate({ id }, { riskScore: riskScore });
   }
 
@@ -201,7 +203,7 @@ export class SecurityEventRepository extends EntityRepository<SecurityEventEntit
    * Update event data for a security event
    */
   async updateEventData(
-    id: number,
+    id: bigint,
     eventData: Record<string, unknown>,
   ): Promise<void> {
     await this.nativeUpdate({ id }, { eventData: eventData });
@@ -211,7 +213,7 @@ export class SecurityEventRepository extends EntityRepository<SecurityEventEntit
    * Update geographic location for a security event
    */
   async updateGeoLocation(
-    id: number,
+    id: bigint,
     geoLocation: Record<string, unknown>,
   ): Promise<void> {
     await this.nativeUpdate({ id }, { geoLocation: geoLocation });
@@ -220,7 +222,7 @@ export class SecurityEventRepository extends EntityRepository<SecurityEventEntit
   /**
    * Delete security event by ID
    */
-  async deleteSecurityEvent(id: number): Promise<boolean> {
+  async deleteSecurityEvent(id: bigint): Promise<boolean> {
     const securityEvent = await this.findOne({ id });
     if (!securityEvent) return false;
 
@@ -281,7 +283,7 @@ export class SecurityEventRepository extends EntityRepository<SecurityEventEntit
   /**
    * Count security events by severity level
    */
-  async countBySeverity(severity: string): Promise<number> {
+  async countBySeverity(severity: Severity): Promise<number> {
     return this.count({ severity });
   }
 
@@ -304,7 +306,7 @@ export class SecurityEventRepository extends EntityRepository<SecurityEventEntit
    */
   async countHighSeverity(): Promise<number> {
     return this.count({
-      severity: { $in: ['high', 'critical'] },
+      severity: { $in: [Severity.HIGH, Severity.CRITICAL] },
     });
   }
 
@@ -390,15 +392,15 @@ export class SecurityEventRepository extends EntityRepository<SecurityEventEntit
     userId?: number;
     eventType?: string;
     eventCategory?: string;
-    severity?: string;
+    severity?: Severity;
     ipAddress?: string;
     sessionId?: string;
     requiresAction?: boolean;
     isResolved?: boolean;
     occurredAfter?: Date;
     occurredBefore?: Date;
-    riskScoreMin?: string;
-    riskScoreMax?: string;
+    riskScoreMin?: number;
+    riskScoreMax?: number;
   }): Promise<SecurityEventEntity[]> {
     const where: any = {};
 
@@ -456,7 +458,7 @@ export class SecurityEventRepository extends EntityRepository<SecurityEventEntit
       userId?: number;
       eventType?: string;
       eventCategory?: string;
-      severity?: string;
+      severity?: Severity;
       requiresAction?: boolean;
       isResolved?: boolean;
     },
@@ -539,7 +541,7 @@ export class SecurityEventRepository extends EntityRepository<SecurityEventEntit
    */
   async findCriticalEvents(): Promise<SecurityEventEntity[]> {
     return this.find({
-      severity: { $in: ['high', 'critical'] },
+      severity: { $in: [Severity.HIGH, Severity.CRITICAL] },
       isResolved: false,
     });
   }
@@ -548,8 +550,8 @@ export class SecurityEventRepository extends EntityRepository<SecurityEventEntit
    * Get security events by risk score range
    */
   async findByRiskScoreRange(
-    minScore: string,
-    maxScore: string,
+    minScore: number,
+    maxScore: number,
   ): Promise<SecurityEventEntity[]> {
     return this.find({
       riskScore: {

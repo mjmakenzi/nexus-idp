@@ -13,6 +13,7 @@ import {
   OtpDeliveryMethod,
   OtpIdentifier,
   OtpPurpose,
+  Severity,
   UserEntity,
 } from '@app/db';
 import { DevicesService } from '@app/devices';
@@ -173,7 +174,7 @@ export class AuthService {
       session: session,
       eventType: 'login',
       eventCategory: 'auth',
-      severity: 'low',
+      severity: Severity.LOW,
     };
     await this.securityService.createSecurityEvent(createSecurityEventDto);
 
@@ -254,7 +255,7 @@ export class AuthService {
       session: session,
       eventType: 'logout',
       eventCategory: 'auth',
-      severity: 'info',
+      severity: Severity.INFO,
     };
     await this.securityService.createSecurityEvent(createSecurityEventDto);
     return {

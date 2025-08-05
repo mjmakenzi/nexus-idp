@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { SessionRepository } from '@app/db';
+import { SessionRepository, SessionTerminationReason } from '@app/db';
 import { CommonService, IRefreshPayload } from '@app/shared-utils';
 import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
@@ -57,7 +57,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
     // Check if session is expired (more than 15 days or 90 days)
     if (now > session.expiresAt || now > session.maxExpiresAt) {
       session.terminatedAt = now;
-      session.terminationReason = 'session_expired';
+      session.terminationReason = SessionTerminationReason.TIMEOUT;
       await this.sessionRepo.updateSession(session.id, session);
       throw new UnauthorizedException('Session expired. Please re-login.');
     }
@@ -70,8 +70,8 @@ export class JwtRefreshStrategy extends PassportStrategy(
     );
 
     if (!isValid) {
-      session.terminatedAt = new Date();
-      session.terminationReason = 'token_reuse_detected';
+      session.terminatedAt = now;
+      session.terminationReason = SessionTerminationReason.REVOKED;
       await this.sessionRepo.updateSession(session.id, session);
       // TODO: Log security event
       // TODO: Store in token_blacklist (optional but recommended)
