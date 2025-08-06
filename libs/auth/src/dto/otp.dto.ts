@@ -4,56 +4,47 @@ import {
   OtpPurpose,
   UserEntity,
 } from '@app/db';
-import { Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import {
-  IsDate,
-  IsEnum,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-} from 'class-validator';
-
-export class OneClickPhoneDto {
-  @IsString()
-  @IsNotEmpty()
-  country_code!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  phone_no!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  otp!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @IsOptional()
-  arcaptcha_token?: string;
-}
+  IsValidCountryCode,
+  IsValidEmail,
+  IsValidIpAddress,
+  IsValidOtpCode,
+  IsValidPhoneNumber,
+} from './validators';
 
 export class SendOptEmailDto {
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Email is required' })
+  @IsValidEmail()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
   email!: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'OTP type is required' })
   type!: string;
 
   @IsString()
-  @IsNotEmpty()
   @IsOptional()
   arcaptcha_token?: string;
 }
 
 export class OneClickEmailDto {
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Email is required' })
+  @IsValidEmail()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
   email!: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'OTP code is required' })
+  @IsValidOtpCode()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   otp!: string;
 }
 
@@ -70,24 +61,49 @@ export class CreateOtpDto {
   identifier!: OtpIdentifier;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'User agent is required' })
   userAgent!: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'IP address is required' })
+  @IsValidIpAddress()
   ipAddress!: string;
 
   @IsEnum(OtpDeliveryMethod)
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Delivery method is required' })
   deliveryMethod!: OtpDeliveryMethod;
+
+  @IsString()
+  @IsOptional()
+  @IsValidCountryCode()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  countryCode?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsValidPhoneNumber()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  phoneNumber?: string;
 }
 
 export class FindOtpDto {
   @IsEnum(OtpIdentifier)
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'OTP identifier is required' })
   identifier!: OtpIdentifier;
 
   @IsEnum(OtpPurpose)
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'OTP purpose is required' })
   purpose!: OtpPurpose;
+
+  @IsString()
+  @IsOptional()
+  @IsValidCountryCode()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  countryCode?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsValidPhoneNumber()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  phoneNumber?: string;
 }

@@ -8,6 +8,7 @@ import {
   OptionalProps,
   PrimaryKey,
   Property,
+  Unique,
 } from '@mikro-orm/core';
 import { ProfileRepository } from '../repositories/profile.repository';
 import { UserEntity } from './user.entity';
@@ -46,24 +47,24 @@ export class ProfileEntity extends BaseEntity {
   @OneToOne(() => UserEntity, {
     fieldName: 'user_id',
     nullable: false,
-    owner: false,
+    owner: true,
   })
   user!: UserEntity;
 
   @Property({
     fieldName: 'user_data_key',
-    serializedName: 'user-data-key',
+    serializedName: 'user_data_key',
     nullable: false,
     type: 'varchar',
     length: 100,
-    unique: true,
   })
+  @Unique()
   @Index({ name: 'idx_user_data_key' })
   userDataKey!: string;
 
   @Property({
     fieldName: 'first_name',
-    serializedName: 'first-name',
+    serializedName: 'first_name',
     nullable: true,
     type: 'varchar',
     length: 100,
@@ -72,7 +73,7 @@ export class ProfileEntity extends BaseEntity {
 
   @Property({
     fieldName: 'last_name',
-    serializedName: 'last-name',
+    serializedName: 'last_name',
     nullable: true,
     type: 'varchar',
     length: 100,
@@ -81,7 +82,7 @@ export class ProfileEntity extends BaseEntity {
 
   @Property({
     fieldName: 'display_name',
-    serializedName: 'display-name',
+    serializedName: 'display_name',
     nullable: true,
     type: 'varchar',
     length: 200,
@@ -100,7 +101,7 @@ export class ProfileEntity extends BaseEntity {
 
   @Property({
     fieldName: 'date_of_birth',
-    serializedName: 'date-of-birth',
+    serializedName: 'date_of_birth',
     nullable: true,
     type: 'date',
   })
@@ -117,7 +118,7 @@ export class ProfileEntity extends BaseEntity {
 
   @Property({
     fieldName: 'avatar_file_name',
-    serializedName: 'avatar-file-name',
+    serializedName: 'avatar_file_name',
     nullable: true,
     type: 'varchar',
     length: 500,
@@ -126,7 +127,7 @@ export class ProfileEntity extends BaseEntity {
 
   @Property({
     fieldName: 'cover_file_name',
-    serializedName: 'cover-file-name',
+    serializedName: 'cover_file_name',
     nullable: true,
     type: 'varchar',
     length: 500,
@@ -144,7 +145,7 @@ export class ProfileEntity extends BaseEntity {
 
   @Property({
     fieldName: 'social_links',
-    serializedName: 'social-links',
+    serializedName: 'social_links',
     type: 'json',
     nullable: true,
   })
@@ -152,7 +153,7 @@ export class ProfileEntity extends BaseEntity {
 
   @Property({
     fieldName: 'apple_uid',
-    serializedName: 'apple-uid',
+    serializedName: 'apple_uid',
     nullable: true,
     type: 'varchar',
     length: 100,
@@ -161,7 +162,7 @@ export class ProfileEntity extends BaseEntity {
 
   @Property({
     fieldName: 'google_id',
-    serializedName: 'google-id',
+    serializedName: 'google_id',
     nullable: true,
     type: 'varchar',
     length: 100,
@@ -190,7 +191,7 @@ export class ProfileEntity extends BaseEntity {
 
   @Property({
     fieldName: 'preferred_language',
-    serializedName: 'preferred-language',
+    serializedName: 'preferred_language',
     nullable: true,
     type: 'varchar',
     length: 10,
@@ -207,7 +208,7 @@ export class ProfileEntity extends BaseEntity {
 
   @Property({
     fieldName: 'created_at',
-    serializedName: 'created-at',
+    serializedName: 'created_at',
     type: 'timestamp',
     nullable: false,
   })
@@ -215,7 +216,7 @@ export class ProfileEntity extends BaseEntity {
 
   @Property({
     fieldName: 'updated_at',
-    serializedName: 'updated-at',
+    serializedName: 'updated_at',
     type: 'timestamp',
     nullable: false,
   })

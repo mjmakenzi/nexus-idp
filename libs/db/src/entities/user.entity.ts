@@ -264,7 +264,7 @@ export class UserEntity extends BaseEntity {
     serializedName: 'country_code',
     nullable: true,
     type: 'char',
-    length: 2,
+    length: 5,
   })
   countryCode?: string;
 
@@ -306,11 +306,10 @@ export class UserEntity extends BaseEntity {
   @Property({
     fieldName: 'password_version',
     serializedName: 'password_version',
-    default: 1,
     type: 'int',
     nullable: false,
   })
-  passwordVersion!: number;
+  passwordVersion: number = 1;
 
   @Property({
     fieldName: 'totp_secret',
@@ -457,7 +456,7 @@ export class UserEntity extends BaseEntity {
     type: 'datetime',
     nullable: false,
   })
-  createdAt!: Date;
+  createdAt: Date = new Date();
 
   @Property({
     fieldName: 'updated_at',
@@ -465,7 +464,7 @@ export class UserEntity extends BaseEntity {
     type: 'timestamp',
     nullable: false,
   })
-  updatedAt?: Date;
+  updatedAt: Date = new Date();
 
   @Property({
     fieldName: 'deleted_at',
@@ -503,6 +502,7 @@ export class UserEntity extends BaseEntity {
    */
   @OneToOne(() => ProfileEntity, (profile) => profile.user, {
     nullable: true,
+    owner: false,
     cascade: [Cascade.REMOVE],
   })
   profile?: ProfileEntity;

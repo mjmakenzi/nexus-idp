@@ -18,7 +18,7 @@ export interface IAccessPayload {
   sessionId: string; // Session ID
   data: {
     user: {
-      id: bigint;
+      id: string; // Changed from bigint to string for JSON serialization
       username: string;
       display_name?: string;
       email?: string;
@@ -39,7 +39,7 @@ export interface IRefreshPayload {
   sessionId: string;
   data: {
     user: {
-      id: bigint;
+      id: string; // Changed from bigint to string for JSON serialization
     };
   };
 }

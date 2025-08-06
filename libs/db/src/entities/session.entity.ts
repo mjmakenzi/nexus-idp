@@ -18,6 +18,7 @@ export enum SessionTerminationReason {
   TIMEOUT = 'timeout',
   REVOKED = 'revoked',
   DEVICE_REMOVED = 'device_removed',
+  SESSION_LIMIT_ENFORCED = 'session_limit_enforced',
 }
 
 /**
@@ -233,7 +234,7 @@ export class SessionEntity extends BaseEntity {
     nullable: false,
   })
   @Index({ name: 'idx_session_expires_at' })
-  expiresAt!: Date;
+  expiresAt: Date = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000); // 1 day from now
 
   /**
    * Timestamp when the session expires
@@ -275,7 +276,7 @@ export class SessionEntity extends BaseEntity {
     serializedName: 'termination_reason',
     nullable: true,
     type: 'varchar',
-    length: 20,
+    length: 50,
   })
   @Enum(() => SessionTerminationReason)
   terminationReason?: SessionTerminationReason;

@@ -11,14 +11,14 @@ export class SecurityEventService {
 
   async createSecurityEvent(dto: CreateSecurityEventDto) {
     const createSecurityEventDto: Partial<SecurityEventEntity> = {
-      user: dto.user,
+      user: dto.user ?? null,
       eventType: dto.eventType,
       eventCategory: dto.eventCategory,
       severity: dto.severity,
       occurredAt: new Date(),
       userAgent: CommonService.getRequesterUserAgent(dto.req),
       ipAddress: CommonService.getRequesterIpAddress(dto.req),
-      sessionId: String(dto.session.id),
+      sessionId: String(dto.session?.id),
     };
 
     return this.securityEventRepository.createSecurityEvent(

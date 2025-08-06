@@ -1,3 +1,4 @@
+import { sessionSchema } from '@app/auth';
 import Joi from 'joi';
 import { appleSchema } from '../apple/apple.schema';
 import { avatarSchema } from '../avatar/avatar.schema';

@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from '@app/auth';
+import { AuthController } from '@app/auth';
+import { sessionConfig } from '@app/auth';
 import { DbModule } from '@app/db';
 import {
   appleConfig,
@@ -16,7 +18,6 @@ import { LoggerModule } from '@app/shared-utils';
 import { UserModule } from '@app/user';
 import { resolve } from 'path';
 import { apiConfig } from './api.config';
-import { ApiController } from './api.controller';
 import { apiSchema } from './api.schema';
 
 @Module({
@@ -33,6 +34,7 @@ import { apiSchema } from './api.schema';
         nodemailerConfig,
         rcaptchaConfig,
         appleConfig,
+        sessionConfig,
       ],
       validationSchema: apiSchema.concat(combinedValidationSchema),
     }),
@@ -41,6 +43,6 @@ import { apiSchema } from './api.schema';
     AuthModule,
     UserModule,
   ],
-  controllers: [ApiController],
+  controllers: [AuthController],
 })
 export class ApiModule {}

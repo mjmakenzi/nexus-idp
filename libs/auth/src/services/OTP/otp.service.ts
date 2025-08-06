@@ -16,9 +16,17 @@ export class OtpService {
     // 1. Find user by phone
     // const user = await this.userRepo.getUserByPhone(dto);
 
-    // 2. Check for recent OTP (limit)
-    const validOtp: OtpEntity | null = await this.otpRepo.findByExpiredOtp(dto);
-    if (validOtp) {
+    // 2. Check for recent OTP (rate limiting)
+    const findOtpDto: FindOtpDto = {
+      identifier: dto.identifier,
+      purpose: dto.purpose,
+      countryCode: dto.countryCode,
+      phoneNumber: dto.phoneNumber,
+    };
+
+    const recentOtp: OtpEntity | null =
+      await this.otpRepo.findRecentOtp(findOtpDto);
+    if (recentOtp) {
       throw new BadRequestException('otp_limit');
     }
 
@@ -57,8 +65,12 @@ export class OtpService {
     return await this.otpRepo.deleteOtp();
   }
 
-  async findByExpiredOtp(dto: FindOtpDto): Promise<OtpEntity | null> {
-    return await this.otpRepo.findByExpiredOtp(dto);
+  async findOtp(dto: FindOtpDto): Promise<OtpEntity | null> {
+    return await this.otpRepo.findOtp(dto);
+  }
+
+  async findRecentOtp(dto: FindOtpDto): Promise<OtpEntity | null> {
+    return await this.otpRepo.findRecentOtp(dto);
   }
 
   // async oneClickPhone(dto: OneClickPhoneDto): Promise<any> {

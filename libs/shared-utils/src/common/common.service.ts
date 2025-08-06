@@ -1,11 +1,82 @@
 import { Injectable } from '@nestjs/common';
 import { DeviceType } from '@app/db/entities/device.entity';
+import { EntityManager } from '@mikro-orm/postgresql';
 import * as bcrypt from 'bcrypt';
 import { randomBytes, randomUUID } from 'crypto';
 import { FastifyRequest } from 'fastify';
 
 @Injectable()
 export class CommonService {
+  constructor(private readonly em: EntityManager) {}
+
+  /**
+   * Execute a function within a database transaction
+   * @param callback Function to execute within transaction
+   * @returns Result of the callback function
+   */
+  async executeInTransaction<T>(
+    callback: (em: EntityManager) => Promise<T>,
+  ): Promise<T> {
+    return await this.em.transactional(callback);
+  }
+
+  /**
+   * Execute a function within a transaction with retry logic
+   * @param callback Function to execute within transaction
+   * @param maxRetries Maximum number of retry attempts
+   * @returns Result of the callback function
+   */
+  async executeInTransactionWithRetry<T>(
+    callback: (em: EntityManager) => Promise<T>,
+    maxRetries: number = 3,
+  ): Promise<T> {
+    let lastError: Error;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await this.em.transactional(callback);
+      } catch (error) {
+        lastError = error as Error;
+
+        // Only retry on specific database errors (deadlocks, timeouts)
+        if (this.isRetryableError(error) && attempt < maxRetries) {
+          // Exponential backoff
+          await this.delay(Math.pow(2, attempt) * 100);
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    throw lastError!;
+  }
+
+  /**
+   * Check if an error is retryable
+   */
+  private isRetryableError(error: any): boolean {
+    const retryableErrors = [
+      'deadlock',
+      'timeout',
+      'connection',
+      'serialization',
+      'could not serialize access',
+    ];
+
+    const errorMessage = error.message?.toLowerCase() || '';
+    return retryableErrors.some((retryableError) =>
+      errorMessage.includes(retryableError),
+    );
+  }
+
+  /**
+   * Delay execution for a specified number of milliseconds
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
   generateRandomUserDataKey(): string {
     return randomBytes(16).toString('hex');
   }

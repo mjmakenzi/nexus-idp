@@ -28,7 +28,7 @@ export class JwtService {
       sessionId: session.sessionId,
       data: {
         user: {
-          id: user.id,
+          id: user.id.toString(), // Convert BigInt to string for JSON serialization
           username: user.username,
           display_name: user.profile?.displayname ?? '',
           email: user.email,
@@ -60,7 +60,7 @@ export class JwtService {
       sessionId: session.sessionId,
       data: {
         user: {
-          id: user.id,
+          id: user.id.toString(), // Convert BigInt to string for JSON serialization
         },
       },
     };

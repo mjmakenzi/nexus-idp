@@ -1,38 +1,55 @@
 import { OtpPurpose } from '@app/db';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import {
+  IsValidCountryCode,
+  IsValidOtpCode,
+  IsValidPhoneNumber,
+} from './validators';
 
 export class SendOtpPhoneDto {
-  @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Country code is required' })
+  @IsValidCountryCode()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   country_code!: string;
 
-  @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Phone number is required' })
+  @IsValidPhoneNumber()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   phone_no!: string;
 
-  @IsString()
-  @IsNotEmpty()
+  @IsEnum(OtpPurpose, {
+    message:
+      'Invalid OTP purpose. Must be one of: login, register, reset, verify, mfa, change_email, change_phone',
+  })
+  @IsNotEmpty({ message: 'OTP type is required' })
   type!: OtpPurpose;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Captcha token is required' })
   arcaptcha_token!: string;
 }
 
 export class LoginPhoneDto {
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Country code is required' })
+  @IsValidCountryCode()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   country_code!: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Phone number is required' })
+  @IsValidPhoneNumber()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   phone_no!: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'OTP code is required' })
+  @IsValidOtpCode()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   otp!: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Captcha token is required' })
   arcaptcha_token!: string;
 }

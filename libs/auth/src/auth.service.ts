@@ -3,6 +3,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   CreateOtpDto,
   FindOtpDto,
@@ -34,6 +35,7 @@ import {
   ProfileService,
   UserService,
 } from '@app/user';
+import { EntityManager } from '@mikro-orm/postgresql';
 import { FastifyRequest } from 'fastify';
 import { OtpService } from './services/OTP/otp.service';
 import { RevokedTokenService } from './services/revoked-token/revoked-token.service';
@@ -53,6 +55,8 @@ export class AuthService {
     private readonly securityService: SecurityService,
     private readonly revokedTokenService: RevokedTokenService,
     private readonly logger: LoggerService,
+    private readonly em: EntityManager,
+    private readonly config: ConfigService,
   ) {}
 
   async sendOtpPhone(req: FastifyRequest, dto: SendOtpPhoneDto) {
@@ -63,8 +67,9 @@ export class AuthService {
     const user: UserEntity | null =
       await this.userService.findUserByPhone(findUserByPhoneDto);
 
+    // Use phone number for consistent rate limiting (both existing and non-existing users)
     const findRateLimitDto: FindRateLimitDto = {
-      identifier: user?.id.toString() || '',
+      identifier: `${dto.country_code}${dto.phone_no}`,
       limitType: 'otp',
     };
 
@@ -81,32 +86,82 @@ export class AuthService {
       deliveryMethod: OtpDeliveryMethod.SMS,
       userAgent: CommonService.getRequesterUserAgent(req),
       ipAddress: CommonService.getRequesterIpAddress(req),
+      countryCode: dto.country_code,
+      phoneNumber: dto.phone_no,
     };
 
     const otp = await this.otpService.createOtp(createOtpDto);
 
     this.logger.info('otp', { otp });
 
-    const smsResult = await this.kavenegarService.sendOtpBySms(
-      dto.phone_no,
-      otp,
-    );
+    // Use transaction for OTP creation and SMS sending
+    return await this.executeOtpTransaction(dto, otp, req);
+  }
 
-    if (!smsResult) {
-      return { status: 'error', message: 'sms_error' };
-    }
+  private async executeOtpTransaction(
+    dto: SendOtpPhoneDto,
+    otp: string,
+    req: FastifyRequest,
+  ) {
+    return await this.em.transactional(async (em) => {
+      const smsResult = await this.kavenegarService.sendOtpBySms(
+        dto.phone_no,
+        otp,
+      );
 
-    return { status: 'success', message: 'OTP sent successfully.' };
+      if (!smsResult) {
+        // Clean up the created OTP if SMS fails
+        try {
+          await this.otpService.deleteOtp();
+        } catch (error) {
+          this.logger.error('Failed to cleanup OTP after SMS failure', {
+            error,
+          });
+        }
+        throw new Error('SMS sending failed');
+      }
+
+      // 6. Create security event
+      try {
+        const createSecurityEventDto: CreateSecurityEventDto = {
+          user: null,
+          req: req,
+          session: null,
+          eventType: 'otp_sent',
+          eventCategory: 'auth',
+          severity: Severity.LOW,
+        };
+        await this.securityService.createSecurityEvent(createSecurityEventDto);
+      } catch (error) {
+        this.logger.error('Failed to create security event', { error });
+      }
+
+      return { status: 'success', message: 'OTP sent successfully.' };
+    });
   }
 
   async loginPhone(req: FastifyRequest, dto: LoginPhoneDto) {
+    // Check rate limiting for login attempts
+    const findRateLimitDto: FindRateLimitDto = {
+      identifier: `${dto.country_code}${dto.phone_no}`,
+      limitType: 'login',
+    };
+
+    const rateLimit =
+      await this.securityService.findRateLimit(findRateLimitDto);
+    if (rateLimit && rateLimit.attempts >= rateLimit.maxAttempts) {
+      throw new BadRequestException('Too many login attempts');
+    }
+
     //1. Check if OTP exists and is valid
     const findOtpDto: FindOtpDto = {
       identifier: OtpIdentifier.PHONE,
       purpose: OtpPurpose.LOGIN,
+      countryCode: dto.country_code,
+      phoneNumber: dto.phone_no,
     };
 
-    const otp = await this.otpService.findByExpiredOtp(findOtpDto);
+    const otp = await this.otpService.findOtp(findOtpDto);
     if (!otp) {
       return { status: 'error', message: 'invalid_otp' };
     }
@@ -121,86 +176,131 @@ export class AuthService {
       throw new BadRequestException('invalid_otp');
     }
 
-    // 1. Delete the OTP after use
-    // await this.otpService.deleteOtp();
+    // Mark OTP as used after successful verification
+    otp.isUsed = true;
+    otp.verifiedAt = new Date();
+    await this.otpService.updateOtp(otp.id, otp);
 
-    const findUserByPhoneDto: findUserByPhoneDto = {
-      countryCode: dto.country_code,
-      phoneNumber: dto.phone_no,
-    };
+    // Use transaction for all database operations
+    return await this.executeLoginTransaction(req, dto);
+  }
 
-    // 2. Find or register the user
-    let user: UserEntity | null =
-      await this.userService.findUserByPhone(findUserByPhoneDto);
-    let eventAction = 'login';
-    if (!user) {
-      // Register new user
-      eventAction = 'register/login';
-
-      const createUserDto: CreateUserDto = {
+  private async executeLoginTransaction(
+    req: FastifyRequest,
+    dto: LoginPhoneDto,
+  ) {
+    return await this.em.transactional(async (em) => {
+      const findUserByPhoneDto: findUserByPhoneDto = {
         countryCode: dto.country_code,
         phoneNumber: dto.phone_no,
       };
 
-      user = await this.userService.createUser(createUserDto);
+      // 2. Find or register the user
+      let user: UserEntity | null =
+        await this.userService.findUserByPhone(findUserByPhoneDto);
+      let eventAction = 'login';
 
       if (!user) {
-        return { status: 'error', message: 'db_error_insert' };
-      }
+        // Register new user
+        eventAction = 'register/login';
 
-      const profile = await this.profileService.createProfile(user);
-
-      // Optionally: sync to Discourse, etc.
-      // await this.discourseService.syncSsoRecord(user);
-    } else {
-      // Update phone verified if not set
-      if (!user.phoneVerifiedAt) {
-        const updateUserDto: Partial<UserEntity> = {
-          phoneVerifiedAt: new Date(),
+        const createUserDto: CreateUserDto = {
+          countryCode: dto.country_code,
+          phoneNumber: dto.phone_no,
         };
-        await this.userService.updateUser(user.id, updateUserDto);
+
+        user = await this.userService.createUser(createUserDto);
+
+        if (!user) {
+          throw new Error('Failed to create user');
+        }
+
+        // Create profile for new user
+        try {
+          const profile = await this.profileService.createProfile(user);
+          if (!profile) {
+            this.logger.info('Failed to create profile for user', {
+              userId: user.id,
+            });
+          }
+        } catch (error) {
+          this.logger.error('Error creating profile for user', {
+            userId: user.id,
+            error,
+          });
+          // Continue with login even if profile creation fails
+        }
+      } else {
+        // Update phone verified if not set
+        if (!user.phoneVerifiedAt) {
+          const updateUserDto: Partial<UserEntity> = {
+            phoneVerifiedAt: new Date(),
+          };
+          await this.userService.updateUser(user.id, updateUserDto);
+        }
       }
-    }
-    // 3. Create device
-    const device = await this.deviceService.createDevice(user, req);
 
-    // 5. Create session
-    const session = await this.sessionService.createSession(user, device, req);
+      // 3. Create device
+      const device = await this.deviceService.createDevice(user, req);
 
-    // 6. Create security event
-    const createSecurityEventDto: CreateSecurityEventDto = {
-      user: user,
-      req: req,
-      session: session,
-      eventType: 'login',
-      eventCategory: 'auth',
-      severity: Severity.LOW,
-    };
-    await this.securityService.createSecurityEvent(createSecurityEventDto);
+      // 4. Check session limits and enforce if necessary
+      const maxSessionsPerUser = this.config.getOrThrow<number>(
+        'session.maxSessionsPerUser',
+      );
+      const terminatedCount = await this.sessionService.enforceSessionLimit(
+        Number(user.id),
+        maxSessionsPerUser,
+      );
 
-    // 7. Issue tokens
-    const accessToken = await this.jwtService.issueAccessToken(user, session);
+      if (terminatedCount > 0) {
+        this.logger.info('Session limit enforced', {
+          userId: user.id,
+          terminatedCount,
+          maxSessions: maxSessionsPerUser,
+        });
+      }
 
-    const { refreshToken } = await this.jwtService.issueRefreshToken(
-      user,
-      session,
-    );
+      // 5. Create session
+      const session = await this.sessionService.createSession(
+        user,
+        device,
+        req,
+      );
 
-    // 8. Update refresh token in session
-    session.refreshTokenHash = await this.commonService.hash(refreshToken);
-    await this.sessionService.updateSession(session);
+      // 6. Issue tokens
+      const accessToken = await this.jwtService.issueAccessToken(user, session);
+      const { refreshToken } = await this.jwtService.issueRefreshToken(
+        user,
+        session,
+      );
 
-    return {
-      status: 'success',
-      data: {
-        user_id: String(user.id),
-        session_id: String(session.sessionId),
-        access_token: accessToken,
-        token_type: 'bearer',
-        refresh_token: refreshToken,
-        action: eventAction,
-      },
-    };
+      // 7. Update session with refresh token
+      session.refreshTokenHash = await this.commonService.hash(refreshToken);
+      await this.sessionService.updateSession(session);
+
+      // 8. Create security event
+      const createSecurityEventDto: CreateSecurityEventDto = {
+        user: user,
+        req: req,
+        session: session,
+        eventType: 'login',
+        eventCategory: 'auth',
+        severity: Severity.LOW,
+      };
+      await this.securityService.createSecurityEvent(createSecurityEventDto);
+
+      return {
+        status: 'success',
+        data: {
+          user_id: String(user.id),
+          session_id: String(session.sessionId),
+          access_token: accessToken,
+          token_type: 'bearer',
+          refresh_token: refreshToken,
+          action: eventAction,
+        },
+      };
+    });
   }
 
   async refreshToken(req: FastifyRequest) {

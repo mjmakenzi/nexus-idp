@@ -13,7 +13,6 @@ import {
 } from '@app/shared-utils';
 import { UserModule } from '@app/user';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { OtpService } from './services/OTP/otp.service';
 import { RevokedTokenService } from './services/revoked-token/revoked-token.service';
@@ -35,6 +34,5 @@ import { SessionService } from './services/session/session.service';
   ],
   providers: [AuthService, OtpService, SessionService, RevokedTokenService],
   exports: [AuthService],
-  controllers: [AuthController],
 })
 export class AuthModule {}

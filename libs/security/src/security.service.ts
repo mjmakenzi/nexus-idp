@@ -1,6 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { SessionEntity, UserEntity } from '@app/db';
-import { FastifyRequest } from 'fastify';
 import { CreateRateLimitDto, FindRateLimitDto } from './dto/rate-limit.dto';
 import { CreateSecurityEventDto } from './dto/security-event.dto';
 import { RateLimitService } from './services/rate-limit/rate-limit.service';

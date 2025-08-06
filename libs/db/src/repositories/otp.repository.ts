@@ -5,7 +5,8 @@ import { OtpEntity } from '../entities/otp.entity';
 export class OtpRepository extends EntityRepository<OtpEntity> {
   async createOtp(dto: CreateOtpDto, otpHash: string): Promise<OtpEntity> {
     const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes,
-    const otpEntity = await this.create({
+
+    const otpData: any = {
       user: dto.user,
       identifier: dto.identifier,
       otpHash: otpHash,
@@ -17,8 +18,17 @@ export class OtpRepository extends EntityRepository<OtpEntity> {
       attempts: 0,
       maxAttempts: 5,
       isUsed: false,
-    });
+    };
 
+    // Store phone metadata for non-existing users
+    if (!dto.user && dto.countryCode && dto.phoneNumber) {
+      otpData.metadata = {
+        countryCode: dto.countryCode,
+        phoneNumber: dto.phoneNumber,
+      };
+    }
+
+    const otpEntity = await this.create(otpData);
     await this.em.persistAndFlush(otpEntity);
     return otpEntity;
   }
@@ -77,22 +87,149 @@ export class OtpRepository extends EntityRepository<OtpEntity> {
   //   return validOtp;
   // }
 
-  async findByExpiredOtp(dto: FindOtpDto): Promise<OtpEntity | null> {
+  async findOtp(dto: FindOtpDto): Promise<OtpEntity | null> {
     const expiresAt = new Date(Date.now() - 2 * 60 * 1000); // 2 minutes,
-    return await this.findOne(
-      {
-        identifier: dto.identifier,
-        purpose: dto.purpose,
-        expiresAt: { $gt: expiresAt },
-      },
-      { orderBy: { createdAt: 'DESC' } },
-    );
+
+    const baseQuery = {
+      identifier: dto.identifier,
+      purpose: dto.purpose,
+      expiresAt: { $gt: expiresAt },
+      isUsed: false, // Prevent reuse of already used OTPs
+    };
+
+    // Handle both existing and non-existing users
+    if (dto.countryCode && dto.phoneNumber) {
+      // Use OR logic: either user exists with matching phone OR user is null (for new users)
+      const query = {
+        ...baseQuery,
+        $or: [
+          // Case 1: Existing user with matching phone
+          {
+            user: {
+              countryCode: dto.countryCode,
+              phoneNumber: dto.phoneNumber,
+            },
+          },
+          // Case 2: Non-existing user (user is null) - we need to store phone info in OTP
+          {
+            user: null,
+            // We'll need to add phone metadata to OTP entity
+            metadata: {
+              countryCode: dto.countryCode,
+              phoneNumber: dto.phoneNumber,
+            },
+          },
+        ],
+      };
+
+      return await this.findOne(query, { orderBy: { createdAt: 'DESC' } });
+    }
+
+    // Fallback: no phone filtering
+    return await this.findOne(baseQuery, { orderBy: { createdAt: 'DESC' } });
+  }
+
+  async findRecentOtp(dto: FindOtpDto): Promise<OtpEntity | null> {
+    // Check for OTPs created in the last 2 minutes (rate limiting)
+    const recentTime = new Date(Date.now() - 2 * 60 * 1000);
+
+    const baseQuery = {
+      identifier: dto.identifier,
+      purpose: dto.purpose,
+      createdAt: { $gt: recentTime },
+    };
+
+    // Handle both existing and non-existing users
+    if (dto.countryCode && dto.phoneNumber) {
+      const query = {
+        ...baseQuery,
+        $or: [
+          // Case 1: Existing user with matching phone
+          {
+            user: {
+              countryCode: dto.countryCode,
+              phoneNumber: dto.phoneNumber,
+            },
+          },
+          // Case 2: Non-existing user (user is null) with matching metadata
+          {
+            user: null,
+            metadata: {
+              countryCode: dto.countryCode,
+              phoneNumber: dto.phoneNumber,
+            },
+          },
+        ],
+      };
+
+      return await this.findOne(query, { orderBy: { createdAt: 'DESC' } });
+    }
+
+    // Fallback: no phone filtering
+    return await this.findOne(baseQuery, { orderBy: { createdAt: 'DESC' } });
   }
 
   async deleteOtp() {
     return await this.nativeDelete({
       expiresAt: { $gt: new Date(Date.now() - 5 * 60 * 1000) },
     });
+  }
+
+  /**
+   * Helper method to test OTP lookup logic
+   * This method helps debug OTP lookup issues
+   */
+  async debugOtpLookup(dto: FindOtpDto): Promise<{
+    foundOtp: OtpEntity | null;
+    query: any;
+    explanation: string;
+  }> {
+    const expiresAt = new Date(Date.now() - 2 * 60 * 1000);
+
+    const baseQuery = {
+      identifier: dto.identifier,
+      purpose: dto.purpose,
+      expiresAt: { $gt: expiresAt },
+      isUsed: false,
+    };
+
+    let query: any;
+    let explanation: string;
+
+    if (dto.countryCode && dto.phoneNumber) {
+      query = {
+        ...baseQuery,
+        $or: [
+          {
+            user: {
+              countryCode: dto.countryCode,
+              phoneNumber: dto.phoneNumber,
+            },
+          },
+          {
+            user: null,
+            metadata: {
+              countryCode: dto.countryCode,
+              phoneNumber: dto.phoneNumber,
+            },
+          },
+        ],
+      };
+      explanation = `Looking for OTP with phone ${dto.countryCode}${dto.phoneNumber} - either existing user or new user with metadata`;
+    } else {
+      query = baseQuery;
+      explanation = 'Looking for OTP without phone filtering';
+    }
+
+    const foundOtp = await this.findOne(query, {
+      orderBy: { createdAt: 'DESC' },
+    });
+
+    return {
+      foundOtp,
+      query,
+      explanation,
+    };
   }
   // async getEmailOtp(
   //   dto: OneClickEmailDto | SendOptEmailDto,

@@ -67,7 +67,7 @@ export class SecurityEventEntity extends BaseEntity {
    */
   @ManyToOne(() => UserEntity, { fieldName: 'user_id', nullable: true })
   @Index({ name: 'idx_user_occurred', properties: ['user', 'occurredAt'] })
-  user?: UserEntity;
+  user?: UserEntity | null;
 
   /**
    * Specific type of security event (login, logout, password_change, etc.).
