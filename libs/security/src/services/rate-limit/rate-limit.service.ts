@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { RateLimitEntity } from '@app/db';
 import { RateLimitRepository } from '@app/db/repositories/rate-limit.repository';
 import { CreateRateLimitDto, FindRateLimitDto } from '../../dto/rate-limit.dto';
 
@@ -15,5 +16,9 @@ export class RateLimitService {
       dto.identifier,
       dto.limitType,
     );
+  }
+
+  async updateRateLimit(id: bigint, updateData: Partial<RateLimitEntity>) {
+    return this.rateLimitRepository.updateRateLimit(id, updateData);
   }
 }

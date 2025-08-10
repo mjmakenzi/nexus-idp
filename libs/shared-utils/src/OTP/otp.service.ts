@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateOtpDto, FindOtpDto } from '@app/auth';
 import { OtpEntity, OtpRepository } from '@app/db';
 import { CommonService } from '@app/shared-utils';
+import { randomInt } from 'crypto';
 
 @Injectable()
 export class OtpService {
@@ -33,8 +34,8 @@ export class OtpService {
     // 3. Delete expired OTPs (older than 1 day)
     await this.deleteOtp();
 
-    // 4. Generate OTP
-    const otpRaw = Math.floor(10000 + Math.random() * 90000).toString();
+    // 4. Generate OTP using cryptographically secure random
+    const otpRaw = this.generateSecureOtp();
     const otpHash = await this.commonService.hash(otpRaw);
 
     // 5. Insert OTP
@@ -71,6 +72,14 @@ export class OtpService {
 
   async findRecentOtp(dto: FindOtpDto): Promise<OtpEntity | null> {
     return await this.otpRepo.findRecentOtp(dto);
+  }
+
+  /**
+   * Generate cryptographically secure 5-digit OTP
+   */
+  private generateSecureOtp(): string {
+    // Generate secure random number between 10000 and 99999
+    return randomInt(10000, 100000).toString();
   }
 
   // async oneClickPhone(dto: OneClickPhoneDto): Promise<any> {

@@ -13,8 +13,8 @@ describe('ApiController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(apiController.sendOtpPhone).toBeDefined();
+    it('should be defined', () => {
+      expect(apiController).toBeDefined();
     });
   });
 });

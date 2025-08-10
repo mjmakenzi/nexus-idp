@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from '@app/auth';
 import { AuthController } from '@app/auth';
-import { sessionConfig } from '@app/auth';
 import { DbModule } from '@app/db';
 import {
   appleConfig,
@@ -12,6 +11,7 @@ import {
   kavenegarConfig,
   nodemailerConfig,
   rcaptchaConfig,
+  sessionConfig,
 } from '@app/shared-utils';
 import { combinedValidationSchema } from '@app/shared-utils';
 import { LoggerModule } from '@app/shared-utils';

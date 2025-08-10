@@ -11,28 +11,17 @@ export class ProfileRepository extends EntityRepository<ProfileEntity> {
   }
 
   /** Get user Profile with only user's email and phone number (returns plain object) */
-  async getProfileWithUserRelations(user: UserEntity): Promise<
-    | (Pick<
-        ProfileEntity,
-        | 'id'
-        | 'firstName'
-        | 'lastName'
-        | 'displayname'
-        | 'bio'
-        | 'createdAt'
-        | 'updatedAt'
-      > & {
-        email: string | undefined;
-        phoneNumber: string | undefined;
-        firstName: string | undefined;
-        lastName: string | undefined;
-        displayname: string | undefined;
-        bio: string | undefined;
-        createdAt: Date | undefined;
-        updatedAt: Date | undefined;
-      })
-    | null
-  > {
+  async getProfileWithUserRelations(user: UserEntity): Promise<{
+    id: string; // BigInt converted to string for JSON serialization
+    email: string | undefined;
+    phoneNumber: string | undefined;
+    firstName: string | undefined;
+    lastName: string | undefined;
+    displayname: string | undefined;
+    bio: string | undefined;
+    createdAt: Date | undefined;
+    updatedAt: Date | undefined;
+  } | null> {
     const result = await this.findOne(
       { user: { id: user.id } },
       {
@@ -53,7 +42,7 @@ export class ProfileRepository extends EntityRepository<ProfileEntity> {
     if (!result) return null;
     // Return only the selected fields as a plain object, not as UserEntity
     return {
-      id: result.id,
+      id: result.id.toString(), // Convert BigInt to string for JSON serialization
       email: result.user.email,
       phoneNumber: result.user.phoneNumber,
       firstName: result.firstName,

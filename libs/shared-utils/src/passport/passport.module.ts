@@ -1,18 +1,14 @@
 import { Module } from '@nestjs/common';
 import { PassportModule as NestPassportModule } from '@nestjs/passport';
-import { SessionEntity, UserEntity } from '@app/db';
 import { JwtModule } from '@app/shared-utils';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { RevokedTokenModule } from '../revoked-token/revoked-token.module';
+import { SessionModule } from '../session/session.module';
 import { JwtRefreshStrategy } from './strategies/jwt.refresh.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
-  imports: [
-    NestPassportModule,
-    JwtModule,
-    MikroOrmModule.forFeature([UserEntity, SessionEntity]),
-  ],
+  imports: [NestPassportModule, JwtModule, RevokedTokenModule, SessionModule],
   providers: [JwtStrategy, JwtRefreshStrategy],
-  exports: [NestPassportModule],
+  exports: [NestPassportModule, JwtStrategy, JwtRefreshStrategy],
 })
 export class PassportModule {}

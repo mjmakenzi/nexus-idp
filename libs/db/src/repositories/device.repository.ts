@@ -21,6 +21,53 @@ export class DeviceRepository extends EntityRepository<DeviceEntity> {
   }
 
   /**
+   * Find active (non-blocked) device by fingerprint for a specific user
+   * This ensures device ownership and prevents blocked device reuse
+   */
+  async findActiveByFingerprintAndUser(
+    deviceFingerprint: string,
+    userId: number,
+  ): Promise<DeviceEntity | null> {
+    return this.findOne({
+      deviceFingerprint,
+      user: userId,
+      blockedAt: null, // Not blocked
+    });
+  }
+
+  /**
+   * Find non-blocked devices for a specific user
+   */
+  async findActiveByUser(userId: number): Promise<DeviceEntity[]> {
+    return this.find({
+      user: userId,
+      blockedAt: null, // Not blocked
+    });
+  }
+
+  /**
+   * Check if device is blocked
+   */
+  async isDeviceBlocked(deviceId: number): Promise<boolean> {
+    const device = await this.findOne({ id: deviceId });
+    return device ? !!device.blockedAt : true; // Treat non-existent as blocked
+  }
+
+  /**
+   * Unblock a device (for legitimate reactivation)
+   */
+  async unblockDevice(deviceId: number): Promise<DeviceEntity | null> {
+    const device = await this.findOne({ id: deviceId });
+    if (!device) return null;
+
+    device.blockedAt = undefined;
+    device.blockReason = undefined;
+    device.lastSeenAt = new Date();
+    await this.em.flush();
+    return device;
+  }
+
+  /**
    * Find device by fingerprint and user ID
    */
   async findByFingerprintAndUser(

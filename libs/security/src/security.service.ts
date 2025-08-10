@@ -22,4 +22,8 @@ export class SecurityService {
   async findRateLimit(dto: FindRateLimitDto) {
     return this.rateLimitService.findRateLimit(dto);
   }
+
+  async updateRateLimit(id: bigint, updateData: Partial<any>) {
+    return this.rateLimitService.updateRateLimit(id, updateData);
+  }
 }

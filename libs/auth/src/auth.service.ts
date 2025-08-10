@@ -14,6 +14,9 @@ import {
   OtpDeliveryMethod,
   OtpIdentifier,
   OtpPurpose,
+  RateLimitScope,
+  RevocationReason,
+  SessionTerminationReason,
   Severity,
   UserEntity,
 } from '@app/db';
@@ -28,6 +31,9 @@ import {
   JwtService,
   KavenegarService,
   LoggerService,
+  OtpService,
+  RevokedTokenService,
+  SessionService,
 } from '@app/shared-utils';
 import {
   CreateUserDto,
@@ -37,9 +43,6 @@ import {
 } from '@app/user';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { FastifyRequest } from 'fastify';
-import { OtpService } from './services/OTP/otp.service';
-import { RevokedTokenService } from './services/revoked-token/revoked-token.service';
-import { SessionService } from './services/session/session.service';
 
 @Injectable()
 export class AuthService {
@@ -67,17 +70,8 @@ export class AuthService {
     const user: UserEntity | null =
       await this.userService.findUserByPhone(findUserByPhoneDto);
 
-    // Use phone number for consistent rate limiting (both existing and non-existing users)
-    const findRateLimitDto: FindRateLimitDto = {
-      identifier: `${dto.country_code}${dto.phone_no}`,
-      limitType: 'otp',
-    };
-
-    const rateLimit =
-      await this.securityService.findRateLimit(findRateLimitDto);
-    if (rateLimit && rateLimit.attempts >= rateLimit.maxAttempts) {
-      throw new BadRequestException('Too many requests');
-    }
+    //  Proper time-window based rate limiting
+    await this.enforceOtpRateLimit(dto.country_code, dto.phone_no);
 
     const createOtpDto: CreateOtpDto = {
       user: user,
@@ -141,17 +135,8 @@ export class AuthService {
   }
 
   async loginPhone(req: FastifyRequest, dto: LoginPhoneDto) {
-    // Check rate limiting for login attempts
-    const findRateLimitDto: FindRateLimitDto = {
-      identifier: `${dto.country_code}${dto.phone_no}`,
-      limitType: 'login',
-    };
-
-    const rateLimit =
-      await this.securityService.findRateLimit(findRateLimitDto);
-    if (rateLimit && rateLimit.attempts >= rateLimit.maxAttempts) {
-      throw new BadRequestException('Too many login attempts');
-    }
+    //  Check time-window based rate limiting for login attempts
+    await this.enforceLoginRateLimit(dto.country_code, dto.phone_no);
 
     //1. Check if OTP exists and is valid
     const findOtpDto: FindOtpDto = {
@@ -173,6 +158,10 @@ export class AuthService {
         otp.expiresAt = new Date(); // immediately expire
       }
       await this.otpService.updateOtp(otp.id, otp);
+
+      // Increment login rate limit with proper time-window handling
+      await this.incrementLoginRateLimit(dto.country_code, dto.phone_no);
+
       throw new BadRequestException('invalid_otp');
     }
 
@@ -240,8 +229,31 @@ export class AuthService {
         }
       }
 
-      // 3. Create device
+      // 3. Create device with security validation
       const device = await this.deviceService.createDevice(user, req);
+
+      // Additional security check: Ensure device is safe for authentication
+      const isDeviceSafe = await this.deviceService.isDeviceSafeForAuth(
+        Number(device.id),
+        Number(user.id),
+      );
+
+      if (!isDeviceSafe) {
+        // Log security event for unsafe device usage attempt
+        const createSecurityEventDto: CreateSecurityEventDto = {
+          user: user,
+          req: req,
+          session: null,
+          eventType: 'unsafe_device_attempt',
+          eventCategory: 'security',
+          severity: Severity.HIGH,
+        };
+        await this.securityService.createSecurityEvent(createSecurityEventDto);
+
+        throw new BadRequestException(
+          'Device not authorized for authentication',
+        );
+      }
 
       // 4. Check session limits and enforce if necessary
       const maxSessionsPerUser = this.config.getOrThrow<number>(
@@ -276,7 +288,7 @@ export class AuthService {
 
       // 7. Update session with refresh token
       session.refreshTokenHash = await this.commonService.hash(refreshToken);
-      await this.sessionService.updateSession(session);
+      await this.sessionService.updateBySessionId(session);
 
       // 8. Create security event
       const createSecurityEventDto: CreateSecurityEventDto = {
@@ -311,28 +323,33 @@ export class AuthService {
         session.user,
         session,
       );
+
       const { refreshToken: newRefreshToken, expiresIn } =
         await this.jwtService.issueRefreshToken(session.user, session);
+
       session.expiresAt = new Date(Date.now() + expiresIn * 1000); // 15 days
       session.lastActivityAt = new Date();
-      // session.userAgent = CommonService.getRequesterUserAgent(req);
-      // session.ipAddress = CommonService.getRequesterIpAddress(req);
+      session.userAgent = CommonService.getRequesterUserAgent(req);
+      session.ipAddress = CommonService.getRequesterIpAddress(req);
+
       session.refreshTokenHash = await this.commonService.hash(newRefreshToken);
-      await this.sessionService.updateSession(session);
-      // const createSecurityEventDto: CreateSecurityEventDto = {
-      //   user: session.user,
-      //   req: req,
-      //   session: session,
-      //   eventType: 'refresh',
-      //   eventCategory: 'auth',
-      //   severity: 'info',
-      // };
-      // await this.securityService.createSecurityEvent(createSecurityEventDto);
+      await this.sessionService.updateBySessionId(session);
+
+      // Log security event for token refresh
+      const createSecurityEventDto: CreateSecurityEventDto = {
+        user: session.user,
+        req: req,
+        session: session,
+        eventType: 'refresh',
+        eventCategory: 'auth',
+        severity: Severity.INFO,
+      };
+      await this.securityService.createSecurityEvent(createSecurityEventDto);
 
       return {
         status: 'success',
         data: {
-          session_id: String(session.id),
+          session_id: String(session.sessionId),
           access_token: accessToken,
           refresh_token: newRefreshToken,
         },
@@ -345,10 +362,13 @@ export class AuthService {
   async logout(req: FastifyRequest) {
     const session = (req as any).user;
     session.terminatedAt = new Date();
-    session.terminationReason = 'logout';
-    await this.sessionService.updateSession(session);
+    session.terminationReason = SessionTerminationReason.LOGOUT;
+    await this.sessionService.updateBySessionId(session);
     await this.deviceService.updateDevice(session.device);
-    await this.revokedTokenService.createRevokedToken(session);
+    await this.revokedTokenService.createRevokedToken(
+      session,
+      RevocationReason.LOGOUT,
+    );
     const createSecurityEventDto: CreateSecurityEventDto = {
       user: session.user,
       req: req,
@@ -364,315 +384,188 @@ export class AuthService {
     };
   }
 
-  // async googleLogin(dto: GoogleLoginDto) {
-  //   try {
-  //     // Validate Google token
-  //     const tokenInfo = await this.validateGoogleToken(dto.idToken);
+  /**
+   * FIXED: Proper time-window based rate limiting for OTP requests
+   * Prevents permanent blocking by using sliding time windows
+   */
+  private async enforceOtpRateLimit(
+    countryCode: string,
+    phoneNumber: string,
+  ): Promise<void> {
+    const identifier = `${countryCode}${phoneNumber}`;
+    const now = new Date();
 
-  //     const googleId = dto.user.id;
-  //     const email = tokenInfo.email;
+    const findRateLimitDto: FindRateLimitDto = {
+      identifier,
+      limitType: 'otp',
+    };
 
-  //     // Validate that the email matches
-  //     if (email !== dto.user.email) {
-  //       throw new BadRequestException('Email mismatch');
-  //     }
+    let rateLimit = await this.securityService.findRateLimit(findRateLimitDto);
 
-  //     // Check if user exists by Google ID or email
-  //     let user = await this.userRepository.getUserByGoogleId(googleId);
-  //     if (!user) {
-  //       user = await this.userRepository.getUserByEmail(email);
-  //     }
+    if (rateLimit) {
+      // Check if rate limit window has expired
+      if (now > rateLimit.windowEnd) {
+        // Window expired - Reset the rate limit
+        const resetData = {
+          attempts: 1,
+          windowStart: now,
+          windowEnd: new Date(now.getTime() + 15 * 60 * 1000), // 15 minutes
+        };
+        await this.securityService.updateRateLimit(rateLimit.id, resetData);
 
-  //     let eventAction = 'login';
+        console.info('Rate limit window reset', {
+          identifier,
+          previousAttempts: rateLimit.attempts,
+          windowExpired: rateLimit.windowEnd,
+        });
+        return;
+      }
 
-  //     if (!user) {
-  //       // Register new user
-  //       eventAction = 'register/login';
-  //       const username = await this.commonService.generateRandomUserName();
+      // Window is still active - Check if limit exceeded
+      if (rateLimit.attempts >= rateLimit.maxAttempts) {
+        const minutesRemaining = Math.ceil(
+          (rateLimit.windowEnd.getTime() - now.getTime()) / (1000 * 60),
+        );
 
-  //       user = await this.userRepository.createGoogleUser(
-  //         email,
-  //         username,
-  //         googleId,
-  //         dto.user.givenName,
-  //         dto.user.familyName,
-  //         dto.user.name,
-  //       );
+        throw new BadRequestException(
+          `Too many OTP requests. Please wait ${minutesRemaining} minutes before trying again.`,
+        );
+      }
 
-  //       // Create profile for the user
-  //       const profile = await this.profileRepository.createProfile(user, {
-  //         firstName: dto.user.givenName,
-  //         lastName: dto.user.familyName,
-  //         displayName: dto.user.name,
-  //       });
+      // Increment attempts within the active window
+      rateLimit.attempts += 1;
+      await this.securityService.updateRateLimit(rateLimit.id, {
+        attempts: rateLimit.attempts,
+      });
 
-  //       await this.em.persistAndFlush(profile);
-  //     } else {
-  //       // Update existing user's Google ID if not set
-  //       // if (
-  //       //   !user.federatedIdentities.some(
-  //       //     (identity: FederatedIdentityEntity) =>
-  //       //       identity.provider === 'google' &&
-  //       //       identity.providerUserId === googleId,
-  //       //   )
-  //       // ) {
-  //       //   user.federatedIdentities.add({
-  //       //     provider: 'google',
-  //       //     providerUserId: googleId,
-  //       //   });
-  //       //   await this.em.flush();
-  //       // }
-  //       // // Update email verification if not verified
-  //       // if (!user.emailVerifiedAt) {
-  //       //   user.emailVerifiedAt = new Date();
-  //       //   await this.em.flush();
-  //       // }
-  //     }
+      console.info('OTP rate limit incremented', {
+        identifier,
+        attempts: rateLimit.attempts,
+        maxAttempts: rateLimit.maxAttempts,
+        windowEnd: rateLimit.windowEnd,
+      });
+    } else {
+      // Create new rate limit record
+      const createRateLimitDto = {
+        identifier,
+        limitType: 'otp',
+        scope: RateLimitScope.GLOBAL,
+        attempts: 1,
+        maxAttempts: 5, // 5 attempts per 15-minute window
+        windowStart: now,
+        windowEnd: new Date(now.getTime() + 15 * 60 * 1000), // 15 minutes
+        windowSeconds: 900,
+      };
 
-  //     // Generate JWT tokens
-  //     // const accessToken = this.jwtService.issueAccessToken(user);
-  //     // const refreshToken = this.jwtService.issueRefreshToken(user);
+      await this.securityService.createRateLimit(createRateLimitDto);
 
-  //     return {
-  //       status: 'success',
-  //       data: {
-  //         user_id: user.id.toString(),
-  //         access_token: accessToken,
-  //         token_type: 'bearer',
-  //         refresh_token: refreshToken,
-  //         action: eventAction,
-  //       },
-  //     };
-  //   } catch (error) {
-  //     if (
-  //       error instanceof BadRequestException ||
-  //       error instanceof UnauthorizedException
-  //     ) {
-  //       throw error;
-  //     }
-  //     throw new BadRequestException('Google login failed');
-  //   }
-  // }
+      console.info('New OTP rate limit created', {
+        identifier,
+        maxAttempts: createRateLimitDto.maxAttempts,
+        windowDuration: '15 minutes',
+      });
+    }
+  }
 
-  // async appleLogin(dto: AppleLoginDto) {
-  //   try {
-  //     // Validate Apple identity token
-  //     const tokenInfo = await this.appleService.validateAppleToken(
-  //       dto.identityToken,
-  //     );
+  /**
+   * FIXED: Time-window based rate limiting for login attempts
+   */
+  private async enforceLoginRateLimit(
+    countryCode: string,
+    phoneNumber: string,
+  ): Promise<void> {
+    const identifier = `${countryCode}${phoneNumber}`;
+    const now = new Date();
 
-  //     // Get Apple access token
-  //     const accessToken = await this.appleService.getAppleAccessToken(
-  //       dto.authorizationCode,
-  //     );
+    const findRateLimitDto: FindRateLimitDto = {
+      identifier,
+      limitType: 'login',
+    };
 
-  //     const appleId = tokenInfo.sub;
-  //     const email = tokenInfo.email;
+    const rateLimit =
+      await this.securityService.findRateLimit(findRateLimitDto);
 
-  //     // Check if user exists by Apple ID or email
-  //     let user = await this.userRepository.getUserByAppleId(appleId);
-  //     if (!user && email) {
-  //       user = await this.userRepository.getUserByEmail(email);
-  //     }
+    if (rateLimit) {
+      // Check if rate limit window has expired
+      if (now > rateLimit.windowEnd) {
+        // Window expired - Reset the rate limit (don't throw error)
+        const resetData = {
+          attempts: 0, // Reset to 0 for login checks
+          windowStart: now,
+          windowEnd: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour
+        };
+        await this.securityService.updateRateLimit(rateLimit.id, resetData);
+        return; // Allow the login attempt
+      }
 
-  //     let eventAction = 'login';
+      // Window is still active - Check if limit exceeded
+      if (rateLimit.attempts >= rateLimit.maxAttempts) {
+        const minutesRemaining = Math.ceil(
+          (rateLimit.windowEnd.getTime() - now.getTime()) / (1000 * 60),
+        );
 
-  //     if (!user) {
-  //       // Register new user
-  //       eventAction = 'register/login';
-  //       const username = await this.commonService.generateRandomUserName();
+        throw new BadRequestException(
+          `Too many failed login attempts. Please wait ${minutesRemaining} minutes before trying again.`,
+        );
+      }
+    }
+    // If no rate limit exists or limit not exceeded, allow the attempt
+  }
 
-  //       user = await this.userRepository.createAppleUser(
-  //         email,
-  //         username,
-  //         appleId,
-  //         dto.name,
-  //       );
+  /**
+   * FIXED: Increment login rate limit with time-window handling
+   */
+  private async incrementLoginRateLimit(
+    countryCode: string,
+    phoneNumber: string,
+  ): Promise<void> {
+    const identifier = `${countryCode}${phoneNumber}`;
+    const now = new Date();
 
-  //       // Create profile for the user
-  //       const profile = await this.profileRepository.createProfile(user, {
-  //         displayName: dto.name || 'Apple User',
-  //         createdAt: new Date(),
-  //         updatedAt: new Date(),
-  //       });
+    const findRateLimitDto: FindRateLimitDto = {
+      identifier,
+      limitType: 'login',
+    };
 
-  //       await this.em.persistAndFlush(profile);
-  //     } else if (user) {
-  //       // Update existing user's Apple ID if not set
-  //       // if (
-  //       //   !user.federatedIdentities.some(
-  //       //     (identity) =>
-  //       //       identity.provider === 'apple' &&
-  //       //       identity.providerUserId === appleId,
-  //       //   )
-  //       // ) {
-  //       //   user.federatedIdentities.add({
-  //       //     provider: 'apple',
-  //       //     providerUserId: appleId,
-  //       //   });
-  //       //   await this.em.flush();
-  //       // }
+    let rateLimit = await this.securityService.findRateLimit(findRateLimitDto);
 
-  //       // Update email verification if not verified and email is available
-  //       if (email && !user.emailVerifiedAt) {
-  //         user.emailVerifiedAt = new Date();
-  //         await this.em.flush();
-  //       }
-  //     }
+    if (rateLimit) {
+      // Check if window expired
+      if (now > rateLimit.windowEnd) {
+        // Reset window and start with 1 failed attempt
+        const resetData = {
+          attempts: 1,
+          windowStart: now,
+          windowEnd: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour
+        };
+        await this.securityService.updateRateLimit(rateLimit.id, resetData);
+      } else {
+        // Increment attempts within active window
+        rateLimit.attempts += 1;
+        await this.securityService.updateRateLimit(rateLimit.id, {
+          attempts: rateLimit.attempts,
+        });
+      }
+    } else {
+      // Create new rate limit record for failed login
+      const createLoginRateLimitDto = {
+        identifier,
+        limitType: 'login',
+        scope: RateLimitScope.GLOBAL,
+        attempts: 1,
+        maxAttempts: 10, // 10 failed attempts per hour
+        windowStart: now,
+        windowEnd: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour
+        windowSeconds: 3600,
+      };
 
-  //     // Generate JWT tokens
-  //     const jwtAccessToken = this.jwtService.issueAccessToken(user);
-  //     const jwtRefreshToken = this.jwtService.issueRefreshToken(user);
+      await this.securityService.createRateLimit(createLoginRateLimitDto);
+    }
 
-  //     return {
-  //       status: 'success',
-  //       data: {
-  //         user_id: user.id.toString(),
-  //         access_token: jwtAccessToken,
-  //         token_type: 'bearer',
-  //         refresh_token: jwtRefreshToken,
-  //         action: eventAction,
-  //         apple_access_token: accessToken,
-  //       },
-  //     };
-  //   } catch (error) {
-  //     if (
-  //       error instanceof BadRequestException ||
-  //       error instanceof UnauthorizedException
-  //     ) {
-  //       throw error;
-  //     }
-  //     throw new BadRequestException('Apple login failed');
-  //   }
-  // }
-
-  // async appleLogout(dto: AppleLogoutDto) {
-  //   try {
-  //     // Revoke Apple access token using the Apple service
-  //     await this.appleService.revokeAppleAccessToken(dto.apple_access_token);
-
-  //     return {
-  //       status: 'success',
-  //       message: 'Apple access token successfully revoked.',
-  //     };
-  //   } catch (error) {
-  //     if (error instanceof UnauthorizedException) {
-  //       throw error;
-  //     }
-  //     throw new BadRequestException('Apple logout failed');
-  //   }
-  // }
-
-  // async logout(req: FastifyRequest) {
-  //   try {
-  //     // Get user ID from JWT token (handled by JWT guard)
-  //     const user = (req as any).user;
-  //     if (!user || !user.userId) {
-  //       throw new UnauthorizedException('User not authenticated');
-  //     }
-
-  //     const userId = user.userId;
-  //     const refreshToken = this.extractTokenFromRequest(req);
-
-  //     // Check if token is already revoked
-  //     // const existingRevokedToken =
-  //     //   await this.revokedTokenRepository.getRevokedToken(
-  //     //     userId,
-  //     //     refreshToken,
-  //     //     0, // refresh token type
-  //     //   );
-
-  //     // if (existingRevokedToken) {
-  //     //   throw new UnauthorizedException('Token already revoked');
-  //     // }
-
-  //     // Get token payload to extract expiration
-  //     const tokenPayload = this.jwtService.verifyToken(refreshToken, 'refresh');
-  //     if (!tokenPayload) {
-  //       throw new UnauthorizedException('Invalid refresh token');
-  //     }
-
-  //     const userAgent = CommonService.getRequesterUserAgent(req);
-  //     const ip = CommonService.getRequesterIpAddress(req);
-
-  //     // Create revoked token record
-  //     // const revokedToken = await this.revokedTokenRepository.createRevokedToken(
-  //     //   userId,
-  //     //   refreshToken,
-  //     //   0,
-  //     //   userAgent,
-  //     //   ip,
-  //     //   new Date(tokenPayload.exp * 1000),
-  //     //   new Date(),
-  //     // );
-
-  //     // await this.em.persistAndFlush(revokedToken);
-
-  //     // Terminate device session
-  //     const terminateDate = new Date();
-  //     // await this.deviceRepository.nativeUpdate(
-  //     //   { refreshToken },
-  //     //   { terminatedAt: terminateDate },
-  //     // );
-
-  //     // // Delete expired tokens from revoked tokens table
-  //     // await this.revokedTokenRepository.nativeDelete({
-  //     //   expiredAt: { $lte: new Date() },
-  //     // });
-
-  //     // Logout user from Discourse
-  //     await this.discourseService.logoutUser(userId);
-
-  //     return {
-  //       status: 'success',
-  //       message: 'You have been successfully logged out!',
-  //     };
-  //   } catch (error) {
-  //     if (error instanceof UnauthorizedException) {
-  //       throw error;
-  //     }
-  //     throw new BadRequestException('Logout failed');
-  //   }
-  // }
-
-  // private extractTokenFromRequest(req: FastifyRequest): string {
-  //   const authHeader = req.headers.authorization;
-  //   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-  //     throw new UnauthorizedException('Invalid authorization header');
-  //   }
-  //   return authHeader.substring(7); // Remove 'Bearer ' prefix
-  // }
-
-  // private async validateGoogleToken(idToken: string): Promise<GoogleTokenInfo> {
-  //   try {
-  //     const response = await fetch(
-  //       `https://www.googleapis.com/oauth2/v1/tokeninfo?id_token=${idToken}`,
-  //       {
-  //         method: 'GET',
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //         },
-  //       },
-  //     );
-
-  //     if (!response.ok) {
-  //       throw new UnauthorizedException('Invalid Google token');
-  //     }
-
-  //     const tokenInfo = await response.json();
-
-  //     if (tokenInfo.error) {
-  //       throw new UnauthorizedException(
-  //         `Google token validation failed: ${tokenInfo.error}`,
-  //       );
-  //     }
-
-  //     return tokenInfo;
-  //   } catch (error) {
-  //     if (error instanceof UnauthorizedException) {
-  //       throw error;
-  //     }
-  //     throw new UnauthorizedException('Failed to validate Google token');
-  //   }
-  // }
+    console.info('Login rate limit incremented', {
+      identifier,
+      attempts: rateLimit ? rateLimit.attempts + 1 : 1,
+      maxAttempts: rateLimit ? rateLimit.maxAttempts : 10,
+    });
+  }
 }

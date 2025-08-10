@@ -103,7 +103,11 @@ export class SessionService {
     return this.sessionRepo.createSession(createSessionDto);
   }
 
-  async updateSession(session: SessionEntity) {
-    return this.sessionRepo.updateSession(session.id, session);
+  async updateBySessionId(session: SessionEntity) {
+    return this.sessionRepo.updateBySessionId(session.sessionId, session);
+  }
+
+  async findSessionWithUser(sessionId: string, userId: number) {
+    return this.sessionRepo.findSessionWithUser(sessionId, userId);
   }
 }

@@ -1,4 +1,3 @@
-import { sessionSchema } from '@app/auth';
 import Joi from 'joi';
 import { appleSchema } from '../apple/apple.schema';
 import { avatarSchema } from '../avatar/avatar.schema';
@@ -7,6 +6,7 @@ import { jwtSchema } from '../jwt/jwt.schema';
 import { kavenegarSchema } from '../kavenegar/kavenegar.schema';
 import { nodemailerSchema } from '../nodemailer/nodemailer.schema';
 import { rcaptchaSchema } from '../rcaptcha/rcaptcha.schema';
+import { sessionSchema } from '../session/session.schema';
 
 // Define all schemas
 const schemas = [
@@ -17,6 +17,7 @@ const schemas = [
   discourseSchema,
   kavenegarSchema,
   appleSchema,
+  sessionSchema,
 ];
 
 // Combine all schemas using Joi.concat()
@@ -34,4 +35,5 @@ export {
   discourseSchema,
   kavenegarSchema,
   appleSchema,
+  sessionSchema,
 };

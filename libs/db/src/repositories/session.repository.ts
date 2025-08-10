@@ -28,6 +28,19 @@ export class SessionRepository extends EntityRepository<SessionEntity> {
     return session;
   }
 
+  async updateBySessionId(
+    sessionId: string,
+    dto: Partial<SessionEntity>,
+  ): Promise<SessionEntity> {
+    const session = await this.findOne({ sessionId: sessionId });
+    if (!session) {
+      throw new Error('Session not found');
+    }
+    Object.assign(session, dto);
+    await this.em.flush();
+    return session;
+  }
+
   /**
    * Find a session by its primary key
    */

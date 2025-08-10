@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { SessionConfig } from '../interfaces/session.interface';
+import { SessionConfig } from './session.interface';
 
 export function sessionConfig(): SessionConfig {
   return {

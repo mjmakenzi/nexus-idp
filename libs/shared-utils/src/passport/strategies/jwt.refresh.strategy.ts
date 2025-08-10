@@ -1,16 +1,12 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { SessionRepository, SessionTerminationReason } from '@app/db';
+import { RevocationReason, SessionTerminationReason } from '@app/db';
 import { CommonService, IRefreshPayload } from '@app/shared-utils';
 import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { RevokedTokenService } from '../../revoked-token/revoked-token.service';
+import { SessionService } from '../../session/session.service';
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(
@@ -19,7 +15,8 @@ export class JwtRefreshStrategy extends PassportStrategy(
 ) {
   constructor(
     configService: ConfigService,
-    private readonly sessionRepo: SessionRepository,
+    private readonly revokedTokenService: RevokedTokenService,
+    private readonly sessionService: SessionService,
     private readonly commonService: CommonService,
   ) {
     super({
@@ -45,7 +42,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
       throw new UnauthorizedException('Invalid user ID in refresh token');
     }
 
-    const session = await this.sessionRepo.findSessionWithUser(
+    const session = await this.sessionService.findSessionWithUser(
       sessionId,
       userId,
     );
@@ -58,7 +55,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
     if (now > session.expiresAt || now > session.maxExpiresAt) {
       session.terminatedAt = now;
       session.terminationReason = SessionTerminationReason.TIMEOUT;
-      await this.sessionRepo.updateSession(session.id, session);
+      await this.sessionService.updateBySessionId(session);
       throw new UnauthorizedException('Session expired. Please re-login.');
     }
 
@@ -70,9 +67,13 @@ export class JwtRefreshStrategy extends PassportStrategy(
     );
 
     if (!isValid) {
+      await this.revokedTokenService.createRevokedToken(
+        session,
+        RevocationReason.COMPROMISED,
+      );
       session.terminatedAt = now;
       session.terminationReason = SessionTerminationReason.REVOKED;
-      await this.sessionRepo.updateSession(session.id, session);
+      await this.sessionService.updateBySessionId(session);
       // TODO: Log security event
       // TODO: Store in token_blacklist (optional but recommended)
       throw new UnauthorizedException('Invalid refresh token');

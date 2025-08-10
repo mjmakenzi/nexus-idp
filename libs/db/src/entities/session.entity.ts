@@ -234,7 +234,7 @@ export class SessionEntity extends BaseEntity {
     nullable: false,
   })
   @Index({ name: 'idx_session_expires_at' })
-  expiresAt: Date = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000); // 1 day from now
+  expiresAt: Date = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000); // 15 day from now
 
   /**
    * Timestamp when the session expires

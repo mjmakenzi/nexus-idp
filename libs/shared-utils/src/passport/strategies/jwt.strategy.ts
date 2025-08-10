@@ -5,15 +5,15 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { SessionRepository } from '@app/db';
 import { IAccessPayload } from '@app/shared-utils';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { SessionService } from '../../session/session.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     configService: ConfigService,
-    private readonly sessionRepo: SessionRepository,
+    private readonly sessionService: SessionService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -30,7 +30,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new BadRequestException('Invalid token payload');
     }
 
-    const session = await this.sessionRepo.findSessionWithUser(
+    const session = await this.sessionService.findSessionWithUser(
       sessionId,
       userId,
     );
