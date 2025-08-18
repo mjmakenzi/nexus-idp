@@ -1,8 +1,7 @@
 export interface SessionConfig {
   session: {
     maxSessionsPerUser: number;
-    sessionExpiryHours: number;
-    maxSessionExpiryDays: number;
+    maxSessionsPerDevice: number;
     enforceSessionLimits: boolean;
     terminateOldestOnLimit: boolean;
   };

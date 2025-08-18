@@ -49,3 +49,62 @@ export interface DeviceFingerprint {
     isConsistent: boolean;
   };
 }
+
+// Security Analysis Interfaces
+export interface TimingAnalysis {
+  timeSinceLastRequest: number; // milliseconds
+  requestFrequency: 'normal' | 'high' | 'suspicious';
+  isAutomated: boolean;
+  riskScore: number; // 0-1
+}
+
+export interface UserAgentAnalysis {
+  isMissing: boolean;
+  isTooShort: boolean;
+  isTooLong: boolean;
+  hasSuspiciousKeywords: boolean;
+  hasRandomPatterns: boolean;
+  isAutomated: boolean;
+  consistencyScore: number; // 0-1
+  riskScore: number; // 0-1
+  isSuspicious: boolean;
+}
+
+export interface HeaderAnalysis {
+  inconsistencies: string[];
+  consistencyScore: number; // 0-1
+  isConsistent: boolean;
+}
+
+export interface GeographicAnalysis {
+  country: string;
+  city: string;
+  isKnownLocation: boolean;
+  isSuspiciousLocation: boolean;
+  riskScore: number; // 0-1
+}
+
+export interface NetworkAnalysis {
+  isProxy: boolean;
+  isVPN: boolean;
+  isDatacenter: boolean;
+  isSuspiciousISP: boolean;
+  reputationScore: number; // 0-1
+  riskScore: number; // 0-1
+}
+
+export interface SecurityAnalyses {
+  timingAnalysis: TimingAnalysis;
+  userAgentAnalysis: UserAgentAnalysis;
+  headerAnalysis: HeaderAnalysis;
+  geographicAnalysis: GeographicAnalysis;
+  networkAnalysis: NetworkAnalysis;
+}
+
+export interface SecurityAnalysis {
+  securityScore: number; // 0-1 overall risk score
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  suspiciousPatterns: string[];
+  recommendations: string[];
+  analysis: SecurityAnalyses;
+}

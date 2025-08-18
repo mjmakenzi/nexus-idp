@@ -31,6 +31,8 @@ export * from './revoked-token/revoked-token.module';
 export * from './revoked-token/revoked-token.service';
 export * from './session/session.module';
 export * from './session/session.service';
+export * from './session/session-cleanup.service';
+export * from './session/session-archive.service';
 export * from './session/session.config';
 export * from './OTP/otp.module';
 export * from './OTP/otp.service';

@@ -19,6 +19,7 @@ export enum SessionTerminationReason {
   REVOKED = 'revoked',
   DEVICE_REMOVED = 'device_removed',
   SESSION_LIMIT_ENFORCED = 'session_limit_enforced',
+  ARCHIVED = 'archived',
 }
 
 /**

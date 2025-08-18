@@ -255,28 +255,20 @@ export class AuthService {
         );
       }
 
-      // 4. Check session limits and enforce if necessary
+      // 4. Create session with both user and device session limit enforcement
       const maxSessionsPerUser = this.config.getOrThrow<number>(
         'session.maxSessionsPerUser',
       );
-      const terminatedCount = await this.sessionService.enforceSessionLimit(
-        Number(user.id),
-        maxSessionsPerUser,
+      const maxSessionsPerDevice = this.config.getOrThrow<number>(
+        'session.maxSessionsPerDevice',
       );
 
-      if (terminatedCount > 0) {
-        this.logger.info('Session limit enforced', {
-          userId: user.id,
-          terminatedCount,
-          maxSessions: maxSessionsPerUser,
-        });
-      }
-
-      // 5. Create session
-      const session = await this.sessionService.createSession(
+      const session = await this.sessionService.createSessionWithLimits(
         user,
         device,
         req,
+        maxSessionsPerUser,
+        maxSessionsPerDevice,
       );
 
       // 6. Issue tokens

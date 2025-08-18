@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { LoggerModule } from 'nestjs-pino';
+import { DbModule } from '@app/db';
+import { SessionModule } from '@app/shared-utils';
+import { LoggerModule } from '@app/shared-utils';
 import { resolve } from 'path';
 import { adminConfig } from './admin.config';
 import { AdminController } from './admin.controller';
@@ -15,7 +17,9 @@ import { AdminService } from './admin.service';
       load: [adminConfig],
       validationSchema: adminSchema,
     }),
+    DbModule,
     LoggerModule,
+    SessionModule,
   ],
   controllers: [AdminController],
   providers: [AdminService],

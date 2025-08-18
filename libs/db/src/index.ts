@@ -1,5 +1,6 @@
 export * from './db.module';
 export * from './entities/session.entity';
+export * from './entities/session-archive.entity';
 export * from './entities/revoked-token.entity';
 export * from './entities/device.entity';
 export * from './entities/user.entity';
@@ -13,6 +14,7 @@ export * from './entities/api-key.entity';
 export * from './entities/security-event.entity';
 export * from './entities/rate-limit.entity';
 export * from './repositories/session.repository';
+export * from './repositories/session-archive.repository';
 export * from './repositories/revoked-token.repository';
 export * from './repositories/device.repository';
 export * from './repositories/user.repository';

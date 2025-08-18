@@ -8,12 +8,8 @@ export function sessionConfig(): SessionConfig {
         process.env.MAX_SESSIONS_PER_USER || '5',
         10,
       ),
-      sessionExpiryHours: parseInt(
-        process.env.SESSION_EXPIRY_HOURS || '24',
-        10,
-      ),
-      maxSessionExpiryDays: parseInt(
-        process.env.MAX_SESSION_EXPIRY_DAYS || '90',
+      maxSessionsPerDevice: parseInt(
+        process.env.MAX_SESSIONS_PER_DEVICE || '3',
         10,
       ),
       enforceSessionLimits: process.env.ENFORCE_SESSION_LIMITS !== 'false',

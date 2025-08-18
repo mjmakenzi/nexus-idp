@@ -13,6 +13,7 @@ import { ProfileEntity } from './entities/profile.entity';
 import { RateLimitEntity } from './entities/rate-limit.entity';
 import { RevokedTokenEntity } from './entities/revoked-token.entity';
 import { RoleEntity } from './entities/role.entity';
+import { SessionArchiveEntity } from './entities/session-archive.entity';
 import { SessionEntity } from './entities/session.entity';
 import { UserEntity } from './entities/user.entity';
 
@@ -41,6 +42,7 @@ const config: Options<PostgreSqlDriver> = defineConfig({
     ProfileEntity,
     RateLimitEntity,
     RoleEntity,
+    SessionArchiveEntity,
   ],
   loadStrategy: LoadStrategy.JOINED,
   migrations: {

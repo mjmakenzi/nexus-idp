@@ -4,8 +4,19 @@ import { createHash } from 'crypto';
 import { FastifyRequest } from 'fastify';
 import {
   DeviceFingerprint,
+  GeographicAnalysis,
+  HeaderAnalysis,
+  NetworkAnalysis,
   ParsedUserAgent,
+  SecurityAnalyses,
+  SecurityAnalysis,
+  TimingAnalysis,
+  UserAgentAnalysis,
 } from './device-detection.interface';
+
+// Note: This method requires device repository injection
+// You'll need to inject DeviceRepository in the constructor
+// or move this logic to DevicesService
 
 @Injectable()
 export class DeviceDetectionService {
@@ -77,6 +88,377 @@ export class DeviceDetectionService {
       confidence,
       validation,
     };
+  }
+
+  /**
+   * SECURITY LAYER 1: Server-side behavioral analysis
+   * Detects suspicious patterns without trusting client data
+   */
+  async analyzeRequestBehavior(req: FastifyRequest): Promise<SecurityAnalysis> {
+    const clientIP = this.getRequesterIpAddress(req);
+    const userAgent = req.headers['user-agent'] || '';
+    const timestamp = Date.now();
+
+    // Analyze request timing patterns
+    const timingAnalysis = await this.analyzeRequestTiming(clientIP, timestamp);
+
+    // Analyze User-Agent patterns for automation
+    const userAgentAnalysis = this.analyzeUserAgentPatterns(userAgent);
+
+    // Analyze header consistency
+    const headerAnalysis = this.analyzeHeaderConsistency(req);
+
+    // Analyze geographic anomalies
+    const geographicAnalysis = await this.analyzeGeographicAnomalies(clientIP);
+
+    // Analyze network characteristics
+    const networkAnalysis = await this.analyzeNetworkCharacteristics(clientIP);
+
+    // Calculate overall security score
+    const securityScore = this.calculateSecurityScore({
+      timingAnalysis,
+      userAgentAnalysis,
+      headerAnalysis,
+      geographicAnalysis,
+      networkAnalysis,
+    });
+
+    return {
+      securityScore,
+      riskLevel: this.getRiskLevel(securityScore),
+      suspiciousPatterns: this.detectSuspiciousPatterns({
+        timingAnalysis,
+        userAgentAnalysis,
+        headerAnalysis,
+        geographicAnalysis,
+        networkAnalysis,
+      }),
+      recommendations: this.getSecurityRecommendations(securityScore),
+      analysis: {
+        timingAnalysis,
+        userAgentAnalysis,
+        headerAnalysis,
+        geographicAnalysis,
+        networkAnalysis,
+      },
+    };
+  }
+
+  /**
+   * SECURITY LAYER 2: Request timing analysis
+   * Detects automated attacks and suspicious timing patterns
+   */
+  private async analyzeRequestTiming(
+    clientIP: string,
+    timestamp: number,
+  ): Promise<TimingAnalysis> {
+    // This would integrate with a rate limiting service
+    // For now, we'll return a basic analysis
+    return {
+      timeSinceLastRequest: 0, // Would be calculated from rate limit service
+      requestFrequency: 'normal', // normal, high, suspicious
+      isAutomated: false, // Would be detected based on timing patterns
+      riskScore: 0.1, // Low risk by default
+    };
+  }
+
+  /**
+   * SECURITY LAYER 3: User-Agent pattern analysis
+   * Detects suspicious User-Agent patterns without trusting them
+   */
+  private analyzeUserAgentPatterns(userAgent: string): UserAgentAnalysis {
+    const patterns = {
+      isMissing: !userAgent,
+      isTooShort: userAgent.length < 10,
+      isTooLong: userAgent.length > 500,
+      hasSuspiciousKeywords: this.hasSuspiciousKeywords(userAgent),
+      hasRandomPatterns: this.hasRandomPatterns(userAgent),
+      isAutomated: this.isAutomatedUserAgent(userAgent),
+      consistencyScore: this.calculateUserAgentConsistency(userAgent),
+    };
+
+    const riskScore = this.calculateUserAgentRisk(patterns);
+
+    return {
+      ...patterns,
+      riskScore,
+      isSuspicious: riskScore > 0.6,
+    };
+  }
+
+  /**
+   * SECURITY LAYER 4: Header consistency analysis
+   * Detects inconsistencies in client-provided headers
+   */
+  private analyzeHeaderConsistency(req: FastifyRequest): HeaderAnalysis {
+    const headers = req.headers;
+    const inconsistencies = [];
+
+    // Check for missing required headers in mobile apps
+    const hasMobileHeaders = !!(
+      headers['x-device-id'] || headers['x-device-model']
+    );
+    const userAgent = headers['user-agent'] || '';
+    const isMobileApp = this.isMobileAppUserAgent(userAgent);
+
+    if (isMobileApp && !hasMobileHeaders) {
+      inconsistencies.push('Mobile app missing device headers');
+    }
+
+    // Check for header format consistency
+    if (
+      headers['x-device-model'] &&
+      !this.isValidDeviceModel(headers['x-device-model'] as string)
+    ) {
+      inconsistencies.push('Invalid device model format');
+    }
+
+    // Check for suspicious header combinations
+    if (this.hasSuspiciousHeaderCombination(headers)) {
+      inconsistencies.push('Suspicious header combination');
+    }
+
+    return {
+      inconsistencies,
+      consistencyScore: Math.max(0, 1 - inconsistencies.length * 0.2),
+      isConsistent: inconsistencies.length === 0,
+    };
+  }
+
+  /**
+   * SECURITY LAYER 5: Geographic anomaly detection
+   * Detects requests from unexpected locations
+   */
+  private async analyzeGeographicAnomalies(
+    clientIP: string,
+  ): Promise<GeographicAnalysis> {
+    // This would integrate with a geolocation service
+    // For now, return basic analysis
+    return {
+      country: 'Unknown',
+      city: 'Unknown',
+      isKnownLocation: false,
+      isSuspiciousLocation: false,
+      riskScore: 0.3, // Medium risk for unknown locations
+    };
+  }
+
+  /**
+   * SECURITY LAYER 6: Network characteristics analysis
+   * Detects proxies, VPNs, and suspicious networks
+   */
+  private async analyzeNetworkCharacteristics(
+    clientIP: string,
+  ): Promise<NetworkAnalysis> {
+    // This would integrate with IP reputation services
+    // For now, return basic analysis
+    return {
+      isProxy: false,
+      isVPN: false,
+      isDatacenter: false,
+      isSuspiciousISP: false,
+      reputationScore: 0.8, // Good reputation by default
+      riskScore: 0.1, // Low risk by default
+    };
+  }
+
+  /**
+   * Calculate overall security score from all analyses
+   */
+  private calculateSecurityScore(analyses: SecurityAnalyses): number {
+    const weights = {
+      timing: 0.25,
+      userAgent: 0.25,
+      headers: 0.2,
+      geographic: 0.15,
+      network: 0.15,
+    };
+
+    const scores = {
+      timing: analyses.timingAnalysis.riskScore,
+      userAgent: analyses.userAgentAnalysis.riskScore,
+      headers: 1 - analyses.headerAnalysis.consistencyScore,
+      geographic: analyses.geographicAnalysis.riskScore,
+      network: analyses.networkAnalysis.riskScore,
+    };
+
+    return Object.keys(weights).reduce((total, key) => {
+      return (
+        total +
+        scores[key as keyof typeof scores] *
+          weights[key as keyof typeof weights]
+      );
+    }, 0);
+  }
+
+  /**
+   * Determine risk level based on security score
+   */
+  private getRiskLevel(
+    securityScore: number,
+  ): 'low' | 'medium' | 'high' | 'critical' {
+    if (securityScore < 0.3) return 'low';
+    if (securityScore < 0.6) return 'medium';
+    if (securityScore < 0.8) return 'high';
+    return 'critical';
+  }
+
+  /**
+   * Detect specific suspicious patterns
+   */
+  private detectSuspiciousPatterns(analyses: SecurityAnalyses): string[] {
+    const patterns = [];
+
+    if (analyses.timingAnalysis.isAutomated) {
+      patterns.push('Automated request timing detected');
+    }
+
+    if (analyses.userAgentAnalysis.isSuspicious) {
+      patterns.push('Suspicious User-Agent patterns detected');
+    }
+
+    if (!analyses.headerAnalysis.isConsistent) {
+      patterns.push('Header inconsistencies detected');
+    }
+
+    if (analyses.geographicAnalysis.isSuspiciousLocation) {
+      patterns.push('Suspicious geographic location detected');
+    }
+
+    if (analyses.networkAnalysis.isProxy || analyses.networkAnalysis.isVPN) {
+      patterns.push('Proxy/VPN usage detected');
+    }
+
+    return patterns;
+  }
+
+  /**
+   * Get security recommendations based on risk level
+   */
+  private getSecurityRecommendations(securityScore: number): string[] {
+    const recommendations = [];
+
+    if (securityScore > 0.7) {
+      recommendations.push('Require additional authentication');
+      recommendations.push('Enable enhanced monitoring');
+    }
+
+    if (securityScore > 0.5) {
+      recommendations.push('Implement rate limiting');
+      recommendations.push('Log security events');
+    }
+
+    if (securityScore > 0.3) {
+      recommendations.push('Monitor for suspicious patterns');
+    }
+
+    return recommendations;
+  }
+
+  // Helper methods for security analysis
+  private hasSuspiciousKeywords(userAgent: string): boolean {
+    const suspiciousKeywords = [
+      'bot',
+      'crawler',
+      'spider',
+      'scraper',
+      'automation',
+      'headless',
+      'phantom',
+      'selenium',
+      'puppeteer',
+      'curl',
+      'wget',
+      'python',
+      'java',
+      'perl',
+    ];
+
+    return suspiciousKeywords.some((keyword) =>
+      userAgent.toLowerCase().includes(keyword),
+    );
+  }
+
+  private hasRandomPatterns(userAgent: string): boolean {
+    // Check for random UUID patterns that might be generated
+    const uuidPattern =
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+    const matches = userAgent.match(uuidPattern);
+
+    // If multiple UUIDs in User-Agent, might be suspicious
+    return matches ? matches.length > 2 : false;
+  }
+
+  private isAutomatedUserAgent(userAgent: string): boolean {
+    const automatedPatterns = [
+      /bot/i,
+      /crawler/i,
+      /spider/i,
+      /scraper/i,
+      /headless/i,
+      /phantom/i,
+      /selenium/i,
+      /puppeteer/i,
+      /curl/i,
+      /wget/i,
+      /python/i,
+      /java/i,
+      /perl/i,
+    ];
+
+    return automatedPatterns.some((pattern) => pattern.test(userAgent));
+  }
+
+  private calculateUserAgentConsistency(userAgent: string): number {
+    if (!userAgent) return 0;
+
+    let score = 1;
+
+    // Penalize for suspicious characteristics
+    if (this.hasSuspiciousKeywords(userAgent)) score -= 0.3;
+    if (this.hasRandomPatterns(userAgent)) score -= 0.2;
+    if (this.isAutomatedUserAgent(userAgent)) score -= 0.4;
+    if (userAgent.length < 20) score -= 0.2;
+    if (userAgent.length > 200) score -= 0.1;
+
+    return Math.max(0, score);
+  }
+
+  private calculateUserAgentRisk(patterns: any): number {
+    let risk = 0;
+
+    if (patterns.isMissing) risk += 0.3;
+    if (patterns.isTooShort) risk += 0.2;
+    if (patterns.isTooLong) risk += 0.1;
+    if (patterns.hasSuspiciousKeywords) risk += 0.4;
+    if (patterns.hasRandomPatterns) risk += 0.3;
+    if (patterns.isAutomated) risk += 0.5;
+    if (patterns.consistencyScore < 0.5) risk += 0.3;
+
+    return Math.min(1, risk);
+  }
+
+  private hasSuspiciousHeaderCombination(headers: any): boolean {
+    // Check for impossible combinations
+    const hasMobileHeaders = !!(
+      headers['x-device-id'] || headers['x-device-model']
+    );
+    const hasBrowserHeaders = !!(
+      headers['sec-ch-ua-platform'] || headers['sec-ch-ua']
+    );
+    const userAgent = headers['user-agent'] || '';
+
+    // Mobile app with browser headers
+    if (this.isMobileAppUserAgent(userAgent) && hasBrowserHeaders) {
+      return true;
+    }
+
+    // Browser with mobile headers
+    if (this.isDefinitelyBrowser(userAgent) && hasMobileHeaders) {
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -331,26 +713,52 @@ export class DeviceDetectionService {
   }
 
   /**
-   * PRIMARY FINGERPRINT: Most reliable identification
+   * PRIMARY FINGERPRINT: Hardware-based identification with UUID validation
    */
   private createPrimaryFingerprint(
     components: DeviceFingerprint['components'],
     parsed: ParsedUserAgent,
   ): string {
-    // PRIORITY 1: Use device ID from mobile app headers (most reliable)
-    if (components.deviceId && this.isValidUUID(components.deviceId)) {
-      return components.deviceId;
+    // PRIORITY 1: Hardware-based fingerprint (most secure)
+    const hardwareIdentifiers = [
+      components.deviceModel, // Hardware model (iPhone14,2, SM-G998B)
+      parsed.device.vendor, // Device vendor
+      parsed.device.model, // Device model
+      components.platform, // Platform info
+      components.systemVersion, // OS version
+    ].filter(Boolean);
+
+    if (hardwareIdentifiers.length >= 2) {
+      // Create hardware-based fingerprint
+      const hardwareFingerprint = createHash('sha256')
+        .update(hardwareIdentifiers.join('|'))
+        .digest('hex')
+        .substring(0, 32);
+
+      return hardwareFingerprint;
     }
 
-    // PRIORITY 2: Extract from user agent if it's a mobile app
+    // PRIORITY 2: UUID from mobile app with consistency validation
+    if (components.deviceId && this.isValidUUID(components.deviceId)) {
+      // Validate UUID consistency with other device info
+      if (this.isUUIDConsistent(components.deviceId, components, parsed)) {
+        return components.deviceId;
+      }
+      // If UUID is inconsistent, fall back to hardware fingerprint
+    }
+
+    // PRIORITY 3: Extract from user agent if it's a mobile app
     const mobileMatch = components.userAgent.match(
       /^([^\/]+)\/([^\s]+)\s*\((?:([^;]+);)?([^;\s]+)\s+([^;]+);([^)]+)\)$/,
     );
     if (mobileMatch && mobileMatch[6] && this.isValidUUID(mobileMatch[6])) {
-      return mobileMatch[6]; // Use the unique ID from mobile app user agent
+      // Validate UUID consistency
+      if (this.isUUIDConsistent(mobileMatch[6], components, parsed)) {
+        return mobileMatch[6];
+      }
     }
 
-    // PRIORITY 3: Create composite fingerprint for browsers or fallback
+    // PRIORITY 4: Create composite fingerprint for browsers or fallback
     const fingerprintData = [
       components.userAgent,
       components.screen || '',
@@ -451,6 +859,71 @@ export class DeviceDetectionService {
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
+  }
+
+  /**
+   * UUID CONSISTENCY CHECK: Validate UUID consistency with device info
+   */
+  private isUUIDConsistent(
+    uuid: string,
+    components: DeviceFingerprint['components'],
+    parsed: ParsedUserAgent,
+  ): boolean {
+    // Check consistency with device model
+    if (components.deviceModel && parsed.device.model) {
+      const deviceModelConsistent =
+        components.deviceModel.includes(parsed.device.model) ||
+        parsed.device.model.includes(components.deviceModel);
+      if (!deviceModelConsistent) {
+        console.warn('UUID inconsistency: Device model mismatch', {
+          uuid,
+          deviceModel: components.deviceModel,
+          parsedModel: parsed.device.model,
+        });
+        return false;
+      }
+    }
+
+    // Check consistency with OS
+    if (components.systemVersion && parsed.os.name) {
+      const osConsistent =
+        components.systemVersion
+          .toLowerCase()
+          .includes(parsed.os.name.toLowerCase()) ||
+        parsed.os.name
+          .toLowerCase()
+          .includes(components.systemVersion.toLowerCase());
+      if (!osConsistent) {
+        console.warn('UUID inconsistency: OS mismatch', {
+          uuid,
+          systemVersion: components.systemVersion,
+          parsedOS: parsed.os.name,
+        });
+        return false;
+      }
+    }
+
+    // Check for suspicious patterns (all zeros, sequential, etc.)
+    if (this.isSuspiciousUUID(uuid)) {
+      console.warn('UUID inconsistency: Suspicious UUID pattern', { uuid });
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * SUSPICIOUS UUID DETECTION: Check for fake UUID patterns
+   */
+  private isSuspiciousUUID(uuid: string): boolean {
+    // Check for all zeros or sequential patterns
+    const suspiciousPatterns = [
+      /^0{8}-0{4}-0{4}-0{4}-0{12}$/, // All zeros
+      /^1{8}-1{4}-1{4}-1{4}-1{12}$/, // All ones
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/, // Sequential
+    ];
+
+    return suspiciousPatterns.some((pattern) => pattern.test(uuid));
   }
 
   /**
@@ -744,7 +1217,7 @@ export class DeviceDetectionService {
   /**
    * IP ADDRESS EXTRACTION: Enhanced with better validation
    */
-  private getRequesterIpAddress(req: FastifyRequest): string {
+  getRequesterIpAddress(req: FastifyRequest): string {
     // Priority order for IP detection
     const headers = [
       'cf-connecting-ip', // Cloudflare

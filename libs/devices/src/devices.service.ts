@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { DeviceEntity, DeviceRepository, UserEntity } from '@app/db';
-import { CommonService } from '@app/shared-utils';
-import { DeviceDetectionService } from '@app/shared-utils/device-detection/device-detection.service';
+import { CommonService, DeviceDetectionService } from '@app/shared-utils';
 import { FastifyRequest } from 'fastify';
 
 @Injectable()
@@ -12,6 +11,22 @@ export class DevicesService {
   ) {}
 
   async createDevice(user: UserEntity, req: FastifyRequest) {
+    // SECURITY LAYER 1: Behavioral analysis (server-side, doesn't trust client data)
+    const securityAnalysis =
+      await this.deviceDetection.analyzeRequestBehavior(req);
+
+    // Log security analysis for monitoring
+    console.info('Security analysis for device creation', {
+      userId: user.id,
+      securityScore: securityAnalysis.securityScore,
+      riskLevel: securityAnalysis.riskLevel,
+      suspiciousPatterns: securityAnalysis.suspiciousPatterns,
+      ipAddress: this.deviceDetection.getRequesterIpAddress(req),
+    });
+
+    // SECURITY LAYER 2: Apply security measures based on risk level
+    await this.applySecurityMeasures(securityAnalysis, user, req);
+
     // BEST PRACTICE: Get all device info at once using enhanced detection
     const deviceInfo = this.deviceDetection.getCompleteDeviceInfo(req);
 
@@ -23,7 +38,11 @@ export class DevicesService {
 
     if (activeDevice) {
       // Update last seen and return existing active device with enhanced metadata
-      return await this.updateExistingActiveDevice(activeDevice, req);
+      return await this.updateExistingActiveDevice(
+        activeDevice,
+        req,
+        securityAnalysis,
+      );
     }
 
     // Check if there's ANY device with same fingerprint (global unique constraint)
@@ -40,11 +59,16 @@ export class DevicesService {
             existingDevice,
             user,
             req,
+            securityAnalysis,
           );
         } else {
           // Device exists and is active - this shouldn't happen due to earlier check
           // But handle gracefully by updating it
-          return await this.updateExistingActiveDevice(existingDevice, req);
+          return await this.updateExistingActiveDevice(
+            existingDevice,
+            req,
+            securityAnalysis,
+          );
         }
       } else {
         // CRITICAL SECURITY ISSUE: Different user has device with same fingerprint
@@ -52,11 +76,12 @@ export class DevicesService {
           existingDevice,
           user,
           req,
+          securityAnalysis,
         );
       }
     }
 
-    // BEST PRACTICE: Create device with comprehensive metadata
+    // BEST PRACTICE: Create device with comprehensive metadata and security info
     const createDeviceDto: Partial<DeviceEntity> = {
       user: user,
       deviceFingerprint: deviceInfo.fingerprint,
@@ -69,25 +94,132 @@ export class DevicesService {
       browserName: deviceInfo.browserName,
       browserVersion: deviceInfo.browserVersion,
       lastSeenAt: new Date(),
-      // Enhanced metadata storage
+      // Enhanced metadata storage with security analysis
       deviceMetadata: {
         secondaryFingerprint: deviceInfo.secondaryFingerprint,
         confidence: deviceInfo.confidence,
         detectionComponents: deviceInfo.components,
         createdWith: 'enhanced-detection-v1',
+        // Security analysis data
+        securityAnalysis: {
+          initialSecurityScore: securityAnalysis.securityScore,
+          initialRiskLevel: securityAnalysis.riskLevel,
+          suspiciousPatterns: securityAnalysis.suspiciousPatterns,
+          analysisTimestamp: new Date().toISOString(),
+        },
       },
     };
 
-    console.info('Creating new device with enhanced detection', {
-      userId: user.id,
-      fingerprint: deviceInfo.fingerprint.substring(0, 8) + '...',
-      confidence: deviceInfo.confidence,
-      deviceType: deviceInfo.deviceType,
-      os: `${deviceInfo.osName} ${deviceInfo.osVersion}`,
-      browser: `${deviceInfo.browserName} ${deviceInfo.browserVersion}`,
-    });
+    console.info(
+      'Creating new device with enhanced detection and security analysis',
+      {
+        userId: user.id,
+        fingerprint: deviceInfo.fingerprint.substring(0, 8) + '...',
+        confidence: deviceInfo.confidence,
+        deviceType: deviceInfo.deviceType,
+        os: `${deviceInfo.osName} ${deviceInfo.osVersion}`,
+        browser: `${deviceInfo.browserName} ${deviceInfo.browserVersion}`,
+        securityScore: securityAnalysis.securityScore,
+        riskLevel: securityAnalysis.riskLevel,
+      },
+    );
 
     return this.deviceRepo.createDevice(createDeviceDto);
+  }
+
+  /**
+   * SECURITY LAYER: Apply security measures based on behavioral analysis
+   * This implements the security-first approach without blocking legitimate users
+   */
+  private async applySecurityMeasures(
+    securityAnalysis: any,
+    user: UserEntity,
+    req: FastifyRequest,
+  ): Promise<void> {
+    const { securityScore, riskLevel, suspiciousPatterns } = securityAnalysis;
+
+    // CRITICAL RISK: Immediate blocking for obvious attacks
+    if (riskLevel === 'critical' || securityScore > 0.9) {
+      console.error('CRITICAL SECURITY THREAT DETECTED', {
+        userId: user.id,
+        securityScore,
+        riskLevel,
+        suspiciousPatterns,
+        ipAddress: this.deviceDetection.getRequesterIpAddress(req),
+        userAgent: req.headers['user-agent'],
+      });
+
+      throw new BadRequestException(
+        'Access denied due to security policy. Please contact support if this is an error.',
+      );
+    }
+
+    // HIGH RISK: Require additional verification
+    if (riskLevel === 'high' || securityScore > 0.7) {
+      console.warn('HIGH RISK DEVICE DETECTED', {
+        userId: user.id,
+        securityScore,
+        riskLevel,
+        suspiciousPatterns,
+        ipAddress: this.deviceDetection.getRequesterIpAddress(req),
+      });
+
+      // Log security event for monitoring
+      await this.logSecurityEvent('High risk device creation attempt', {
+        userId: user.id,
+        securityScore,
+        riskLevel,
+        suspiciousPatterns,
+        ipAddress: this.deviceDetection.getRequesterIpAddress(req),
+        userAgent: req.headers['user-agent'],
+      });
+
+      // For now, allow but mark as untrusted
+      // In production, you might want to require additional authentication
+    }
+
+    // MEDIUM RISK: Enhanced monitoring
+    if (riskLevel === 'medium' || securityScore > 0.5) {
+      console.info(
+        'MEDIUM RISK DEVICE DETECTED - Enhanced monitoring enabled',
+        {
+          userId: user.id,
+          securityScore,
+          riskLevel,
+          suspiciousPatterns,
+        },
+      );
+
+      // Log for enhanced monitoring
+      await this.logSecurityEvent('Medium risk device creation', {
+        userId: user.id,
+        securityScore,
+        riskLevel,
+        suspiciousPatterns,
+        ipAddress: this.deviceDetection.getRequesterIpAddress(req),
+      });
+    }
+
+    // LOW RISK: Normal processing (most legitimate users)
+    if (riskLevel === 'low' || securityScore < 0.3) {
+      console.debug('Low risk device creation - Normal processing', {
+        userId: user.id,
+        securityScore,
+        riskLevel,
+      });
+    }
+  }
+
+  /**
+   * Log security events for monitoring and analysis
+   */
+  private async logSecurityEvent(eventType: string, data: any): Promise<void> {
+    // This would integrate with your security event logging system
+    // For now, just console log
+    console.info(`SECURITY EVENT: ${eventType}`, {
+      timestamp: new Date().toISOString(),
+      ...data,
+    });
   }
 
   async updateDevice(device: DeviceEntity) {
@@ -178,6 +310,7 @@ export class DevicesService {
     blockedDevice: DeviceEntity,
     user: UserEntity,
     req: FastifyRequest,
+    securityAnalysis?: any,
   ): Promise<DeviceEntity> {
     const blockReason = blockedDevice.blockReason;
     const blockedTime = blockedDevice.blockedAt;
@@ -186,7 +319,7 @@ export class DevicesService {
       : 0;
     const hoursSinceBlocked = timeSinceBlocked / (1000 * 60 * 60);
 
-    // Log the reactivation attempt
+    // Log the reactivation attempt with security analysis
     console.info('Blocked device reactivation attempt', {
       userId: user.id,
       deviceId: blockedDevice.id,
@@ -195,6 +328,8 @@ export class DevicesService {
       blockedAt: blockedTime,
       hoursSinceBlocked: Math.round(hoursSinceBlocked * 100) / 100,
       userOwned: Number(blockedDevice.user.id) === Number(user.id),
+      securityScore: securityAnalysis?.securityScore,
+      riskLevel: securityAnalysis?.riskLevel,
     });
 
     // POLICY 1: Check device ownership (Critical Security Check)
@@ -204,6 +339,7 @@ export class DevicesService {
         blockedDeviceUserId: blockedDevice.user.id,
         attemptingUserId: user.id,
         deviceId: blockedDevice.id,
+        securityAnalysis: securityAnalysis,
       });
 
       throw new BadRequestException(
@@ -221,6 +357,8 @@ export class DevicesService {
           blockedDevice,
           req,
           'Normal user return',
+          true, // Trusted
+          securityAnalysis,
         );
 
       case 'Security violation':
@@ -239,6 +377,7 @@ export class DevicesService {
           req,
           'Post-security-cooldown reactivation',
           false, // Not trusted
+          securityAnalysis,
         );
 
       case 'Admin blocked':
@@ -255,6 +394,8 @@ export class DevicesService {
           blockedDevice,
           req,
           'Session limit reactivation',
+          true, // Trusted
+          securityAnalysis,
         );
 
       default:
@@ -270,12 +411,14 @@ export class DevicesService {
           blockReason,
           deviceId: blockedDevice.id,
           userId: user.id,
+          securityAnalysis: securityAnalysis,
         });
         return await this.reactivateDevice(
           blockedDevice,
           req,
           'Unknown reason reactivation',
           false, // Not trusted due to unknown reason
+          securityAnalysis,
         );
     }
   }
@@ -288,6 +431,7 @@ export class DevicesService {
     req: FastifyRequest,
     reactivationReason: string,
     isTrusted: boolean = false,
+    securityAnalysis?: any,
   ): Promise<DeviceEntity> {
     // BEST PRACTICE: Use enhanced detection for reactivation
     const deviceInfo = this.deviceDetection.getCompleteDeviceInfo(req);
@@ -313,24 +457,38 @@ export class DevicesService {
       browserName: deviceInfo.browserName,
       browserVersion: deviceInfo.browserVersion,
 
-      // Enhanced metadata for reactivation
+      // Enhanced metadata for reactivation with security analysis
       deviceMetadata: {
         ...device.deviceMetadata,
         reactivatedAt: new Date().toISOString(),
         reactivationReason,
         confidence: deviceInfo.confidence,
         detectionComponents: deviceInfo.components,
+        // Security analysis for reactivation
+        reactivationSecurityAnalysis: securityAnalysis
+          ? {
+              securityScore: securityAnalysis.securityScore,
+              riskLevel: securityAnalysis.riskLevel,
+              suspiciousPatterns: securityAnalysis.suspiciousPatterns,
+              analysisTimestamp: new Date().toISOString(),
+            }
+          : undefined,
       },
     };
 
-    console.info('Device reactivated with enhanced detection', {
-      deviceId: device.id,
-      userId: device.user.id,
-      reason: reactivationReason,
-      isTrusted,
-      confidence: deviceInfo.confidence,
-      fingerprint: deviceInfo.fingerprint.substring(0, 8) + '...',
-    });
+    console.info(
+      'Device reactivated with enhanced detection and security analysis',
+      {
+        deviceId: device.id,
+        userId: device.user.id,
+        reason: reactivationReason,
+        isTrusted,
+        confidence: deviceInfo.confidence,
+        fingerprint: deviceInfo.fingerprint.substring(0, 8) + '...',
+        securityScore: securityAnalysis?.securityScore,
+        riskLevel: securityAnalysis?.riskLevel,
+      },
+    );
 
     const reactivatedDevice = await this.deviceRepo.updateDevice(
       Number(device.id),
@@ -346,6 +504,7 @@ export class DevicesService {
   private async updateExistingActiveDevice(
     device: DeviceEntity,
     req: FastifyRequest,
+    securityAnalysis?: any,
   ): Promise<DeviceEntity> {
     // BEST PRACTICE: Use enhanced detection for updates
     const deviceInfo = this.deviceDetection.getCompleteDeviceInfo(req);
@@ -360,12 +519,21 @@ export class DevicesService {
       osVersion: deviceInfo.osVersion,
       browserName: deviceInfo.browserName,
       browserVersion: deviceInfo.browserVersion,
-      // Update metadata with latest detection info
+      // Update metadata with latest detection info and security analysis
       deviceMetadata: {
         ...device.deviceMetadata,
         lastUpdate: new Date().toISOString(),
         confidence: deviceInfo.confidence,
         detectionComponents: deviceInfo.components,
+        // Security analysis for updates
+        lastSecurityAnalysis: securityAnalysis
+          ? {
+              securityScore: securityAnalysis.securityScore,
+              riskLevel: securityAnalysis.riskLevel,
+              suspiciousPatterns: securityAnalysis.suspiciousPatterns,
+              analysisTimestamp: new Date().toISOString(),
+            }
+          : undefined,
       },
     };
 
@@ -385,10 +553,11 @@ export class DevicesService {
     existingDevice: DeviceEntity,
     newUser: UserEntity,
     req: FastifyRequest,
+    securityAnalysis?: any,
   ): Promise<DeviceEntity> {
     const deviceFingerprint = existingDevice.deviceFingerprint;
 
-    // Log critical security event
+    // Log critical security event with security analysis
     console.error('SECURITY ALERT: Device fingerprint collision detected', {
       existingDeviceId: existingDevice.id,
       existingUserId: existingDevice.user.id,
@@ -397,6 +566,7 @@ export class DevicesService {
       ipAddress: CommonService.getRequesterIpAddress(req),
       userAgent: CommonService.getRequesterUserAgent(req),
       timestamp: new Date().toISOString(),
+      securityAnalysis: securityAnalysis,
     });
 
     // SECURITY POLICY: Different strategies based on existing device status
@@ -416,6 +586,7 @@ export class DevicesService {
             newUserId: newUser.id,
             deviceId: existingDevice.id,
             daysSinceBlocked,
+            securityAnalysis: securityAnalysis,
           },
         );
 
