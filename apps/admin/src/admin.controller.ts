@@ -8,6 +8,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { DevicesService } from '@app/devices';
 import {
   SessionArchiveService,
   SessionCleanupService,
@@ -20,6 +21,7 @@ export class AdminController {
   constructor(
     private readonly sessionCleanupService: SessionCleanupService,
     private readonly sessionArchiveService: SessionArchiveService,
+    private readonly deviceService: DevicesService,
   ) {}
 
   /**
@@ -558,6 +560,119 @@ export class AdminController {
           deletedCount: result.deletedCount,
           dryRun: result.dryRun,
         },
+      },
+    };
+  }
+
+  // ============================================================================
+  // DEVICE TRUST MANAGEMENT ENDPOINTS
+  // ============================================================================
+
+  /**
+   * Trust a device
+   * POST /devices/trust
+   */
+  @Post('devices/trust')
+  @HttpCode(HttpStatus.OK)
+  async trustDevice(@Body() body: { deviceId: number; userId: number }) {
+    const device = await this.deviceService.trustDevice(
+      body.deviceId,
+      body.userId,
+    );
+
+    return {
+      status: 'success',
+      data: {
+        message: `Device ${body.deviceId} marked as trusted`,
+        device: {
+          id: device.id,
+          deviceName: device.deviceName,
+          isTrusted: device.isTrusted,
+          trustedAt: device.trustedAt,
+        },
+      },
+    };
+  }
+
+  /**
+   * Untrust a device
+   * POST /devices/untrust
+   */
+  @Post('devices/untrust')
+  @HttpCode(HttpStatus.OK)
+  async untrustDevice(@Body() body: { deviceId: number; userId: number }) {
+    const device = await this.deviceService.untrustDevice(
+      body.deviceId,
+      body.userId,
+    );
+
+    return {
+      status: 'success',
+      data: {
+        message: `Device ${body.deviceId} trust removed`,
+        device: {
+          id: device.id,
+          deviceName: device.deviceName,
+          isTrusted: device.isTrusted,
+          trustedAt: device.trustedAt,
+        },
+      },
+    };
+  }
+
+  /**
+   * Check device trust status for authentication
+   * GET /devices/:deviceId/trust-status
+   */
+  @Get('devices/:deviceId/trust-status')
+  async getDeviceTrustStatus(
+    @Param('deviceId') deviceId: number,
+    @Query('userId') userId: number,
+  ) {
+    const trustStatus = await this.deviceService.isDeviceTrustedForAuth(
+      deviceId,
+      userId,
+    );
+
+    return {
+      status: 'success',
+      data: {
+        deviceId,
+        userId,
+        isTrusted: trustStatus.isTrusted,
+        trustedAt: trustStatus.trustedAt,
+        recommendations: trustStatus.recommendations,
+      },
+    };
+  }
+
+  /**
+   * Get user's trusted devices
+   * GET /devices/trusted/:userId
+   */
+  @Get('devices/trusted/:userId')
+  async getUserTrustedDevices(@Param('userId') userId: number) {
+    const trustedDevices =
+      await this.deviceService.getUserTrustedDevices(userId);
+
+    return {
+      status: 'success',
+      data: {
+        userId,
+        trustedDevices: trustedDevices.map((device) => ({
+          id: device.id,
+          deviceName: device.deviceName,
+          deviceType: device.deviceType,
+          osName: device.osName,
+          osVersion: device.osVersion,
+          browserName: device.browserName,
+          browserVersion: device.browserVersion,
+          isTrusted: device.isTrusted,
+          trustedAt: device.trustedAt,
+          lastSeenAt: device.lastSeenAt,
+          lastIpAddress: device.lastIpAddress,
+        })),
+        count: trustedDevices.length,
       },
     };
   }

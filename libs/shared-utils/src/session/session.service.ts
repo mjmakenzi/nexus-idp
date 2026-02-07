@@ -229,4 +229,11 @@ export class SessionService {
   async findSessionWithUser(sessionId: string, userId: number) {
     return this.sessionRepo.findSessionWithUser(sessionId, userId);
   }
+
+  async terminateAllUserSessions(
+    userId: number,
+    reason: SessionTerminationReason,
+  ) {
+    return this.sessionRepo.terminateAllUserSessions(userId, reason);
+  }
 }

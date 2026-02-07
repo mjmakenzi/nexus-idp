@@ -31,8 +31,8 @@ async function bootstrap() {
 
   if (!configService.getOrThrow<boolean>('isProduction')) {
     const config = new DocumentBuilder()
-      .setTitle('IDP API')
-      .setDescription('The IDP API description')
+      .setTitle('Nexus IDP API')
+      .setDescription('Identity Provider API — Auth, profile, sessions')
       .setVersion(configService.getOrThrow<string>('version'))
       .addServer(configService.getOrThrow<string>('swaggerUrlPrefix'))
       .addBearerAuth()
@@ -40,7 +40,7 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, config);
     const swaggerTheme = new SwaggerTheme();
     SwaggerModule.setup('docs', app, document, {
-      customSiteTitle: 'IDP API Swagger',
+      customSiteTitle: 'Nexus IDP — API Docs',
     });
   }
 

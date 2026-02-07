@@ -4,34 +4,60 @@ import { UserEntity } from '../entities/user.entity';
 
 export class UserRepository extends EntityRepository<UserEntity> {
   /**
-   * Get user by ID
-   */
-  async getUserById(id: number): Promise<UserEntity | null> {
-    return await this.findOne({ id });
-  }
-
-  /**
-   * Get user by email
+   * Get user by email (excludes deleted users)
    */
   async getUserByEmail(email: string): Promise<UserEntity | null> {
-    return await this.findOne({ email });
+    const normalizedEmail = email.toLowerCase().trim();
+    return await this.findOne({
+      emailNormalized: normalizedEmail,
+      deletedAt: null,
+    });
   }
 
   /**
-   * Get user by username
+   * Get user by username (excludes deleted users)
    */
   async getUserByUsername(username: string): Promise<UserEntity | null> {
-    return await this.findOne({ username });
+    return await this.findOne({
+      username,
+      deletedAt: null,
+    });
   }
 
   /**
-   * Get user by phone number
+   * Get user by phone number (excludes deleted users)
    */
   async findUserByPhone(dto: findUserByPhoneDto): Promise<UserEntity | null> {
     return await this.findOne({
       countryCode: dto.countryCode,
       phoneNumber: dto.phoneNumber,
+      deletedAt: null,
     });
+  }
+
+  /**
+   * Get user by ID (excludes deleted users)
+   */
+  async getUserById(id: number): Promise<UserEntity | null> {
+    return await this.findOne({
+      id,
+      deletedAt: null,
+    });
+  }
+
+  /**
+   * Get user by email including deleted users (for admin operations)
+   */
+  async getUserByEmailWithDeleted(email: string): Promise<UserEntity | null> {
+    const normalizedEmail = email.toLowerCase().trim();
+    return await this.findOne({ emailNormalized: normalizedEmail });
+  }
+
+  /**
+   * Get user by ID including deleted users (for admin operations)
+   */
+  async getUserByIdWithDeleted(id: number): Promise<UserEntity | null> {
+    return await this.findOne({ id });
   }
 
   /**
@@ -45,13 +71,13 @@ export class UserRepository extends EntityRepository<UserEntity> {
   }
 
   /**
-   * Update user
+   * Update user (excludes deleted users)
    */
   async updateUser(
     id: bigint,
     userData: Partial<UserEntity>,
   ): Promise<UserEntity | null> {
-    const user = await this.findOne({ id });
+    const user = await this.findOne({ id, deletedAt: null });
     if (!user) return null;
 
     this.assign(user, userData);

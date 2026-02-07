@@ -14,12 +14,16 @@ export class CreateUserDto {
   passwordSalt?: string;
 
   @IsString()
-  @IsNotEmpty()
-  countryCode!: string;
+  @IsOptional()
+  email?: string;
 
   @IsString()
-  @IsNotEmpty()
-  phoneNumber!: string;
+  @IsOptional()
+  countryCode?: string;
+
+  @IsString()
+  @IsOptional()
+  phoneNumber?: string;
 
   @IsDate()
   @IsOptional()
@@ -34,4 +38,10 @@ export class findUserByPhoneDto {
   @IsString()
   @IsNotEmpty()
   phoneNumber!: string;
+}
+
+export class findUserByEmailDto {
+  @IsString()
+  @IsNotEmpty()
+  email!: string;
 }

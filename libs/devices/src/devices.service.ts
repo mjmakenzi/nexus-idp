@@ -625,4 +625,223 @@ export class DevicesService {
       'Device authentication failed due to security policy. Please contact support.',
     );
   }
+
+  /**
+   * Mark a device as trusted by the user
+   * This should be called when user explicitly trusts a device
+   * @param deviceId - Device ID to trust
+   * @param userId - User ID who is trusting the device
+   * @returns Updated device entity
+   */
+  async trustDevice(deviceId: number, userId: number): Promise<DeviceEntity> {
+    const device = await this.deviceRepo.findById(deviceId);
+
+    if (!device) {
+      throw new BadRequestException('Device not found');
+    }
+
+    // Security check: Only device owner can trust their device
+    if (Number(device.user.id) !== userId) {
+      throw new BadRequestException('You can only trust your own devices');
+    }
+
+    // Security check: Cannot trust blocked devices
+    if (device.blockedAt) {
+      throw new BadRequestException('Cannot trust a blocked device');
+    }
+
+    // Update trust status
+    const updateData: Partial<DeviceEntity> = {
+      isTrusted: true,
+      trustedAt: new Date(),
+    };
+
+    const updatedDevice = await this.deviceRepo.updateDevice(
+      deviceId,
+      updateData,
+    );
+
+    if (!updatedDevice) {
+      throw new BadRequestException('Failed to update device trust status');
+    }
+
+    console.info('Device marked as trusted', {
+      deviceId,
+      userId,
+      trustedAt: updatedDevice.trustedAt,
+    });
+
+    return updatedDevice;
+  }
+
+  /**
+   * Remove trust from a device
+   * This should be called when user wants to untrust a device
+   * @param deviceId - Device ID to untrust
+   * @param userId - User ID who is untrusting the device
+   * @returns Updated device entity
+   */
+  async untrustDevice(deviceId: number, userId: number): Promise<DeviceEntity> {
+    const device = await this.deviceRepo.findById(deviceId);
+
+    if (!device) {
+      throw new BadRequestException('Device not found');
+    }
+
+    // Security check: Only device owner can untrust their device
+    if (Number(device.user.id) !== userId) {
+      throw new BadRequestException('You can only untrust your own devices');
+    }
+
+    // Update trust status
+    const updateData: Partial<DeviceEntity> = {
+      isTrusted: false,
+      trustedAt: undefined,
+    };
+
+    const updatedDevice = await this.deviceRepo.updateDevice(
+      deviceId,
+      updateData,
+    );
+
+    if (!updatedDevice) {
+      throw new BadRequestException('Failed to update device trust status');
+    }
+
+    console.info('Device trust removed', {
+      deviceId,
+      userId,
+    });
+
+    return updatedDevice;
+  }
+
+  /**
+   * Check if a device is trusted for authentication
+   * Used in authentication flow to determine security requirements
+   * @param deviceId - Device ID to check
+   * @param userId - User ID who owns the device
+   * @returns Trust status and recommendations
+   */
+  async isDeviceTrustedForAuth(
+    deviceId: number,
+    userId: number,
+  ): Promise<{
+    isTrusted: boolean;
+    trustedAt?: Date;
+    recommendations: string[];
+  }> {
+    const device = await this.deviceRepo.findById(deviceId);
+
+    if (!device) {
+      return {
+        isTrusted: false,
+        recommendations: ['Device not found'],
+      };
+    }
+
+    // Security check: Only check trust for device owner
+    if (Number(device.user.id) !== userId) {
+      return {
+        isTrusted: false,
+        recommendations: ['Device does not belong to user'],
+      };
+    }
+
+    const recommendations: string[] = [];
+
+    if (device.isTrusted) {
+      recommendations.push('Device is trusted - relaxed security may apply');
+
+      // Check if trust is recent (within 30 days)
+      if (device.trustedAt) {
+        const trustAge = Date.now() - device.trustedAt.getTime();
+        const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+
+        if (trustAge > thirtyDays) {
+          recommendations.push(
+            'Device trust is older than 30 days - consider re-verification',
+          );
+        }
+      }
+    } else {
+      recommendations.push(
+        'Device is not trusted - enhanced security required',
+      );
+      recommendations.push('Consider enabling MFA for untrusted devices');
+    }
+
+    // Check if device is blocked
+    if (device.blockedAt) {
+      recommendations.push('Device is blocked - authentication denied');
+      return {
+        isTrusted: false,
+        recommendations: ['Device is blocked - cannot authenticate'],
+      };
+    }
+
+    return {
+      isTrusted: device.isTrusted,
+      trustedAt: device.trustedAt,
+      recommendations,
+    };
+  }
+
+  /**
+   * Get user's trusted devices
+   * Used for device management UI
+   * @param userId - User ID
+   * @returns Array of trusted devices
+   */
+  async getUserTrustedDevices(userId: number): Promise<DeviceEntity[]> {
+    return await this.deviceRepo.findTrustedByUser(userId);
+  }
+
+  /**
+   * Auto-trust device based on security analysis
+   * This can be called for devices that pass security thresholds
+   * @param deviceId - Device ID to auto-trust
+   * @param securityScore - Security analysis score
+   * @returns Updated device entity
+   */
+  async autoTrustDevice(
+    deviceId: number,
+    securityScore: number,
+  ): Promise<DeviceEntity | null> {
+    // Only auto-trust if security score is very high (e.g., > 90)
+    if (securityScore < 90) {
+      console.info('Security score too low for auto-trust', {
+        deviceId,
+        securityScore,
+      });
+      return null;
+    }
+
+    const device = await this.deviceRepo.findById(deviceId);
+
+    if (!device || device.isTrusted) {
+      return device; // Already trusted or not found
+    }
+
+    // Auto-trust the device
+    const updateData: Partial<DeviceEntity> = {
+      isTrusted: true,
+      trustedAt: new Date(),
+    };
+
+    const updatedDevice = await this.deviceRepo.updateDevice(
+      deviceId,
+      updateData,
+    );
+
+    if (updatedDevice) {
+      console.info('Device auto-trusted based on security score', {
+        deviceId,
+        securityScore,
+        trustedAt: updatedDevice.trustedAt,
+      });
+    }
+
+    return updatedDevice;
+  }
 }

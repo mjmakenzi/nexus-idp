@@ -150,6 +150,9 @@ export class SessionArchiveService {
       [SessionTerminationReason.DEVICE_REMOVED]: 1095, // 3 years for device removal
       [SessionTerminationReason.SESSION_LIMIT_ENFORCED]: 365, // 1 year for limit enforcement
       [SessionTerminationReason.ARCHIVED]: 2555, // 7 years for archived sessions
+      [SessionTerminationReason.SUSPENDED]: 365, // 1 year for suspended sessions
+      [SessionTerminationReason.LOCKED]: 365, // 1 year for locked sessions
+      [SessionTerminationReason.DELETED]: 365, // 1 year for deleted sessions
     };
 
     return terminationReason ? retentionPolicies[terminationReason] : 2555; // Default 7 years

@@ -1,10 +1,11 @@
 import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
-import { LoginPhoneDto, SendOtpPhoneDto } from '@app/auth';
 import {
-  JwtAuthGuard,
-  JwtRefreshAuthGuard,
-  RcaptchaGuard,
-} from '@app/shared-utils';
+  LoginEmailDto,
+  LoginPhoneDto,
+  SendOtpEmailDto,
+  SendOtpPhoneDto,
+} from '@app/auth';
+import { JwtRefreshAuthGuard } from '@app/shared-utils';
 import { FastifyRequest } from 'fastify';
 import { AuthService } from './auth.service';
 
@@ -39,14 +40,14 @@ export class AuthController {
   }
 
   // @UseGuards(RcaptchaGuard)
-  // @Post('v1/send-otp-email')
-  // sendOtpEmail(@Req() req: FastifyRequest, @Body() body: SendOptEmailDto) {
-  //   return this.otpService.sendOptEmail(req, body);
-  // }
+  @Post('v1/send-otp-email')
+  sendOtpEmail(@Req() req: FastifyRequest, @Body() body: SendOtpEmailDto) {
+    return this.authService.sendOtpEmail(req, body);
+  }
 
   // @UseGuards(RcaptchaGuard)
-  // @Post('v1/one-click-email')
-  // oneClickEmail(@Body() body: OneClickEmailDto) {
-  //   return this.otpService.oneClickEmail(body);
-  // }
+  @Post('v1/one-click-email')
+  oneClickEmail(@Req() req: FastifyRequest, @Body() body: LoginEmailDto) {
+    return this.authService.loginEmail(req, body);
+  }
 }

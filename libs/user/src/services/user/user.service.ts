@@ -1,8 +1,12 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { UserRepository } from '@app/db';
-import { UserEntity } from '@app/db';
+import { UserEntity, UserRepository, UserStatus } from '@app/db';
 import { CommonService } from '@app/shared-utils';
-import { CreateUserDto, findUserByPhoneDto } from '../../dto/user.dto';
+import { FastifyRequest } from 'fastify';
+import {
+  CreateUserDto,
+  findUserByEmailDto,
+  findUserByPhoneDto,
+} from '../../dto/user.dto';
 
 @Injectable()
 export class UserService {
@@ -11,19 +15,42 @@ export class UserService {
     private readonly commonService: CommonService,
   ) {}
 
-  async createUser(dto: CreateUserDto) {
+  async createUser(dto: CreateUserDto, req: FastifyRequest) {
     const username = this.commonService.generateRandomUserName();
     const { passwordHash, passwordSalt } =
       await this.commonService.generateRandomPassword();
+    const now = new Date();
 
     const createUserDto: Partial<UserEntity> = {
-      countryCode: dto.countryCode,
-      phoneNumber: dto.phoneNumber,
+      // Required fields
       username: username,
       passwordHash: passwordHash,
       passwordSalt: passwordSalt,
-      phoneVerifiedAt: new Date(),
+      passwordVersion: 1,
+      mfaEnabled: false,
+      failedLoginAttempts: 0,
+      status: UserStatus.ACTIVE,
+      createdAt: now,
+      updatedAt: now,
+
+      // Optional fields with defaults
+      passwordChangedAt: now,
+      lastLoginAt: now,
+      lastLoginIp: CommonService.getRequesterIpAddress(req),
+
+      // Phone-related fields
+      countryCode: dto.countryCode,
+      phoneNumber: dto.phoneNumber,
+      phone: dto.phoneNumber,
+      phoneVerifiedAt: dto.phoneNumber ? now : undefined,
     };
+
+    // Handle email if provided
+    if (dto.email) {
+      createUserDto.email = dto.email;
+      createUserDto.emailNormalized = dto.email.toLowerCase().trim();
+      createUserDto.emailVerifiedAt = now;
+    }
 
     const user = await this.userRepository.createUser(createUserDto);
 
@@ -36,6 +63,10 @@ export class UserService {
 
   async findUserById(id: number): Promise<UserEntity | null> {
     return await this.userRepository.getUserById(id);
+  }
+
+  async findUserByEmail(dto: findUserByEmailDto): Promise<UserEntity | null> {
+    return await this.userRepository.getUserByEmail(dto.email);
   }
 
   async updateUser(id: bigint, dto: Partial<UserEntity>) {
